@@ -41,10 +41,6 @@ export async function dynamicCharacterIntroduction(
 const prompt = ai.definePrompt({
   name: 'dynamicCharacterIntroductionPrompt',
   input: {schema: DynamicCharacterIntroductionInputSchema},
-  output: {
-    format: 'json',
-    schema: DynamicCharacterIntroductionOutputSchema,
-  },
   model: model,
   config: {
     temperature: 0.8,
@@ -62,7 +58,7 @@ const prompt = ai.definePrompt({
 - キャラクター設定に忠実に、自然な会話をしてください。
 - 会話の中で、自己紹介文（「紹介」の内容）を不自然にならないように織り交ぜてみましょう。毎回言う必要はありません。
 - 回答は日本語で、簡潔かつ会話的にしてください。
-- 応答は必ずJSON形式で返してください。
+- 応答は必ずJSON形式で、'aiResponse'というキーに回答を入れてください。
 
 # ユーザーとの会話
 ユーザー: 「{{userMessage}}」
@@ -77,7 +73,26 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     outputSchema: DynamicCharacterIntroductionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const response = await prompt(input);
+    const rawText = response.text;
+
+    try {
+        // AIの応答からJSON部分を抽出する
+        const jsonMatch = rawText.match(/```json\n([\s\S]*?)\n```/);
+        const jsonString = jsonMatch ? jsonMatch[1] : rawText;
+        
+        const parsed = JSON.parse(jsonString);
+        if (parsed && parsed.aiResponse) {
+            return { aiResponse: parsed.aiResponse };
+        }
+    } catch (e) {
+        // JSON解析に失敗した場合、生のテキストをそのまま返す
+        console.warn("AI response was not valid JSON, returning raw text. Response:", rawText);
+        return { aiResponse: rawText };
+    }
+    
+    // パースは成功したが、aiResponseキーがない場合
+    console.warn("AI response JSON did not contain 'aiResponse' key, returning raw text. Response:", rawText);
+    return { aiResponse: rawText };
   }
 );
