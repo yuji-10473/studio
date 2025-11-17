@@ -19,12 +19,13 @@ import { checkApiKey } from '@/actions/debug';
 import { useToast } from '@/hooks/use-toast';
 
 export default function GameHeader() {
-  const { tok, gameDate, stayAtInn } = useGameState();
+  const { tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
     setIsTestingKey(true);
+    setErrorMessage(''); // Clear previous errors
     const result = await checkApiKey();
     if (result.success) {
       toast({
@@ -32,11 +33,7 @@ export default function GameHeader() {
         description: result.message,
       });
     } else {
-      toast({
-        variant: "destructive",
-        title: "エラー",
-        description: result.message,
-      });
+      setErrorMessage(result.message);
     }
     setIsTestingKey(false);
   };

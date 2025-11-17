@@ -49,6 +49,7 @@ export type GameState = {
   gameDate: number;
   activeConversation: CharacterId | null;
   isAiResponding: boolean;
+  errorMessage: string;
 };
 
 export type GameContextType = GameState & {
@@ -57,4 +58,5 @@ export type GameContextType = GameState & {
   sendMessage: (text: string) => void;
   updateCharacterPersona: (characterId: CharacterId, description: string) => void;
   stayAtInn: () => void;
+  setErrorMessage: (message: string) => void;
 };

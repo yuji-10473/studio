@@ -4,9 +4,17 @@ import { GameStateProvider, useGameState } from '@/contexts/game-state';
 import GameHeader from '@/components/game-header';
 import CharacterGrid from '@/components/character-grid';
 import ConversationModal from '@/components/conversation-modal';
+import DebugError from '@/components/debug-error';
 
 function TownfolkTalesApp() {
-  const { activeConversation, characters, characterStates, endConversation } = useGameState();
+  const { 
+    activeConversation, 
+    characters, 
+    characterStates, 
+    endConversation,
+    errorMessage,
+    setErrorMessage
+  } = useGameState();
 
   const activeCharacter = activeConversation ? characters[activeConversation] : null;
   const activeCharacterState = activeConversation ? characterStates[activeConversation] : null;
@@ -26,6 +34,7 @@ function TownfolkTalesApp() {
           characterId={activeConversation}
         />
       )}
+      <DebugError message={errorMessage} onClose={() => setErrorMessage('')} />
     </div>
   );
 }

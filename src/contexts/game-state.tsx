@@ -29,6 +29,7 @@ const createInitialState = (): GameState => {
     gameDate: 1,
     activeConversation: null,
     isAiResponding: false,
+    errorMessage: '',
   };
 };
 
@@ -42,8 +43,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const savedStateJSON = localStorage.getItem(STORAGE_KEY);
       if (savedStateJSON) {
         const savedState = JSON.parse(savedStateJSON);
-        // Ensure character data is up-to-date with latest from types.ts
-        // while preserving saved persona edits
         const updatedCharacters = { ...CHARACTERS };
         if (savedState.characters) {
             for (const charId in updatedCharacters) {
@@ -67,7 +66,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoaded) {
       try {
-        const stateToSave = { ...state, activeConversation: null, isAiResponding: false };
+        const stateToSave = { ...state, activeConversation: null, isAiResponding: false, errorMessage: '' };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
       } catch (error) {
         console.error("Failed to save game state to localStorage", error);
@@ -79,9 +78,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setState(updater);
   }, []);
 
-  const startConversation = useCallback((characterId: CharacterId) => {
-    updateState(prev => ({ ...prev, activeConversation: characterId }));
+  const setErrorMessage = useCallback((message: string) => {
+    updateState(prev => ({ ...prev, errorMessage: message }));
   }, [updateState]);
+
+  const startConversation = useCallback((characterId: CharacterId) => {
+    setErrorMessage('');
+    updateState(prev => ({ ...prev, activeConversation: characterId }));
+  }, [updateState, setErrorMessage]);
 
   const endConversation = useCallback(() => {
     updateState(prev => ({ ...prev, activeConversation: null }));
@@ -90,6 +94,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const sendMessage = useCallback(async (text: string) => {
     if (!state.activeConversation || !text.trim() || state.isAiResponding) return;
 
+    setErrorMessage('');
     const charId = state.activeConversation;
     const userMessage: Message = { sender: 'user', text, id: Date.now() };
 
@@ -140,11 +145,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         };
       });
     } else {
-      toast({
-        variant: "destructive",
-        title: "エラー",
-        description: result.message,
-      });
+      setErrorMessage(result.message);
       updateState(prev => ({
         ...prev,
         isAiResponding: false,
@@ -158,7 +159,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         },
       }));
     }
-  }, [state.activeConversation, state.isAiResponding, state.characters, updateState, toast]);
+  }, [state.activeConversation, state.isAiResponding, state.characters, updateState, toast, setErrorMessage]);
 
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
     updateState(prev => ({
@@ -197,10 +198,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     sendMessage,
     updateCharacterPersona,
     stayAtInn,
+    setErrorMessage,
   };
   
   if (!isLoaded) {
-    // Render a loading state or nothing until the state is loaded from localStorage
     return null;
   }
 
