@@ -1,8 +1,9 @@
 'use client';
 
+import * as React from 'react';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,9 +15,31 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { checkApiKey } from '@/actions/debug';
+import { useToast } from '@/hooks/use-toast';
 
 export default function GameHeader() {
   const { tok, gameDate, stayAtInn } = useGameState();
+  const [isTestingKey, setIsTestingKey] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleTestKey = async () => {
+    setIsTestingKey(true);
+    const result = await checkApiKey();
+    if (result.success) {
+      toast({
+        title: "成功",
+        description: result.message,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "エラー",
+        description: result.message,
+      });
+    }
+    setIsTestingKey(false);
+  };
 
   return (
     <header className="bg-card border-b sticky top-0 z-10">
@@ -36,6 +59,14 @@ export default function GameHeader() {
             <span className="font-bold text-lg">{gameDate}日目</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleTestKey} disabled={isTestingKey}>
+              {isTestingKey ? (
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              APIキーをテスト
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm">
