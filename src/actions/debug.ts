@@ -21,9 +21,9 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
     // We cannot use the global `ai` object from `@/ai/genkit` because
     // it might be configured differently. We create a temporary instance.
     const ai = genkit({
-        plugins: [googleAI({ apiKey })],
+        plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
     });
-    const model = googleAI.model('gemini-1.5-flash');
+    const model = googleAI.model('gemini-2.5-flash');
 
     // Make a simple, non-empty request to validate the key and API access.
     const response = await ai.generate({

@@ -10,9 +10,9 @@ async function generateText(prompt: string) {
   // Instead, we initialize the Google AI plugin with the provided key.
   const apiKey = process.env.GEMINI_API_KEY!;
   const ai = genkit({
-    plugins: [googleAI({ apiKey })],
+    plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
   });
-  const model = googleAI.model('gemini-1.5-flash');
+  const model = googleAI.model('gemini-2.5-flash');
   
   const response = await ai.generate({
     model,
