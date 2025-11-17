@@ -76,7 +76,7 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
       prompt: prompt,
       config: {
         temperature: 0.8,
-        maxOutputTokens: 200,
+        maxOutputTokens: 800,
       },
     });
 
