@@ -24,12 +24,12 @@ service cloud.firestore {
 
     match /users/{userId}/characterStates/{characterId} {
       // Allow a user to read and write their own character states
-      allow read, write: if request.auth.uid == userId;
+      allow list, read, write: if request.auth.uid == userId;
     }
     
     match /users/{userId}/conversationHistory/{messageId} {
-        // Allow a user to read and write their own conversation history
-        allow read, write: if request.auth.uid == userId;
+        // Allow a user to read, write and list their own conversation history
+        allow list, read, write: if request.auth.uid == userId;
     }
 
     // --- Admins Rules ---
