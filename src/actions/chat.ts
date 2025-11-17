@@ -3,6 +3,8 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import type { Character } from '@/lib/types';
+import { initializeFirebase } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 async function generateText(prompt: string) {
   // We cannot use the global `ai` object from `@/ai/genkit` because
@@ -59,10 +61,34 @@ ${character.name}: `;
 
   try {
     const aiMessage = await generateText(prompt);
+
+    // Log conversation to Firestore for debugging
+    const { firestore } = initializeFirebase();
+    await addDoc(collection(firestore, 'conversations'), {
+        characterName: character.name,
+        userMessage: userMessage,
+        aiResponse: aiMessage,
+        timestamp: serverTimestamp(),
+    });
+
     return { success: true, message: aiMessage };
   } catch (error) {
     console.error('Error getting AI response:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Also log errors to Firestore
+     try {
+        const { firestore } = initializeFirebase();
+        await addDoc(collection(firestore, 'conversations_errors'), {
+            characterName: character.name,
+            userMessage: userMessage,
+            error: errorMessage,
+            timestamp: serverTimestamp(),
+        });
+    } catch (dbError) {
+        console.error("Failed to log error to Firestore:", dbError);
+    }
+
 
     return {
       success: false,

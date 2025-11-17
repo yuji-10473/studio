@@ -7,6 +7,14 @@ service cloud.firestore {
     match /debug_writes/{docId} {
       allow read, write: if true;
     }
+
+    // For debugging conversations, allow writes to conversations and conversations_errors.
+    match /conversations/{docId} {
+      allow write: if true;
+    }
+    match /conversations_errors/{docId} {
+      allow write: if true;
+    }
     
     // By default, disallow all other reads and writes.
     // As you build your app, you will need to add specific rules for other collections.
