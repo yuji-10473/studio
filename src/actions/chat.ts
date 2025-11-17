@@ -13,7 +13,7 @@ export async function getAiResponse(
   userMessage: string
 ): Promise<{ success: boolean; message: string }> {
   const { firestore } = initializeFirebase();
-  const conversationsCollection = collection(firestore, 'conversations_errors'); // Log to a different collection for debugging
+  const conversationsCollection = collection(firestore, 'conversations_errors');
 
   const flowInput = {
     characterName: character.name,
@@ -23,14 +23,22 @@ export async function getAiResponse(
 
   const logData: any = {
     flow: 'dynamicCharacterIntroduction',
-    input: flowInput,
+    // We will populate the full input later
+    input: {},
     timestamp: serverTimestamp(),
   };
 
   try {
     const response = await dynamicCharacterIntroduction(flowInput);
     
-    logData.output = response;
+    // Now log the full input, including the rendered prompt
+    logData.input = {
+        ...flowInput,
+        renderedPrompt: response.prompt,
+    };
+    logData.output = {
+        aiResponse: response.aiResponse
+    };
 
     const aiMessage = response.aiResponse;
 

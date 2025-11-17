@@ -36,7 +36,6 @@ export type Character = {
 };
 
 export type Message = {
-  id?: string;
   sender: 'user' | CharacterId;
   text: string;
   timestamp?: FieldValue | any;

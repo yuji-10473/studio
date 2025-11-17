@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
+import { render } from 'mustache';
 
 // Per AI_Rules.md, we must use gemini-2.5-flash.
 const model = googleAI.model('gemini-2.5-flash');
@@ -26,6 +27,7 @@ export type DynamicCharacterIntroductionInput = z.infer<
 
 const DynamicCharacterIntroductionOutputSchema = z.object({
   aiResponse: z.string().describe('The AI character response.'),
+  prompt: z.string().describe('The full prompt sent to the AI.'),
 });
 export type DynamicCharacterIntroductionOutput = z.infer<
   typeof DynamicCharacterIntroductionOutputSchema
@@ -37,15 +39,7 @@ export async function dynamicCharacterIntroduction(
   return dynamicCharacterIntroductionFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'dynamicCharacterIntroductionPrompt',
-  input: {schema: DynamicCharacterIntroductionInputSchema},
-  model: model,
-  config: {
-    temperature: 0.8,
-    maxOutputTokens: 200,
-  },
-  prompt: `あなたはこれからロールプレイングゲームのキャラクターとして振る舞います。
+const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲームのキャラクターとして振る舞います。
 
 # キャラクター設定
 名前: {{characterName}}
@@ -60,8 +54,8 @@ const prompt = ai.definePrompt({
 # ユーザーとの会話
 ユーザー: 「{{userMessage}}」
 
-{{characterName}}: `,
-});
+{{characterName}}: `;
+
 
 const dynamicCharacterIntroductionFlow = ai.defineFlow(
   {
@@ -70,8 +64,22 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     outputSchema: DynamicCharacterIntroductionOutputSchema,
   },
   async input => {
-    const response = await prompt(input);
-    // AIからの生のテキスト応答をそのまま返す
-    return { aiResponse: response.text };
+    const prompt = render(PROMPT_TEMPLATE, input);
+
+    const response = await ai.generate({
+        model,
+        prompt: prompt,
+        config: {
+            temperature: 0.8,
+            maxOutputTokens: 200,
+        },
+    });
+
+    const aiResponse = response.text;
+    
+    return { 
+        aiResponse,
+        prompt,
+    };
   }
 );
