@@ -8,6 +8,7 @@ import ConversationModal from '@/components/conversation-modal';
 import DebugError from '@/components/debug-error';
 import CreateCharacterModal from '@/components/create-character-modal';
 import { LoaderCircle } from 'lucide-react';
+import Login from '@/components/login';
 
 function TownfolkTalesApp() {
   const { 
@@ -36,11 +37,7 @@ function TownfolkTalesApp() {
   if (!user) {
     return (
        <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Townfolk Talesへようこそ</h2>
-            <p className="text-muted-foreground mb-6">ログインして、AIキャラクターとの会話を始めましょう。</p>
-            {/* ここに将来的にログインボタンなどを配置できます */}
-        </div>
+        <Login />
       </div>
     );
   }

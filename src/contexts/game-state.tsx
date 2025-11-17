@@ -8,7 +8,7 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
 import type { User } from 'firebase/auth';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 const VIRTUE_THRESHOLD = 80;
@@ -48,7 +48,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const { user, role: userRole, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>('characters');
-  const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(user ? `users/${user.uid}` : null);
+  
+  // We only want to fetch the user profile if the user is logged in.
+  // The useDoc hook is modified to handle a null path.
+  const userProfilePath = useMemo(() => (user ? `users/${user.uid}` : null), [user]);
+  const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(userProfilePath);
+
 
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
@@ -59,6 +64,26 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       setState(prev => ({...prev, loading: true}));
       return;
     }
+    
+    // Create user profile if it doesn't exist
+    if (user && !userProfile && firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        getDoc(userDocRef).then(docSnap => {
+            if (!docSnap.exists()) {
+                const newUserProfile: UserProfile = {
+                    email: user.email || '',
+                    displayName: user.displayName || 'New User',
+                    tok: 0,
+                    gameDate: 1,
+                    role: 'user',
+                };
+                setDoc(userDocRef, newUserProfile);
+            }
+        });
+        // The useDoc hook will refetch and update the userProfile state, triggering another rerender.
+        // We can continue with the current flow as it will be corrected shortly.
+    }
+
 
     setState(prevState => {
       const isInitialLoad = !prevState.characters;
@@ -121,7 +146,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       };
     });
 
-  }, [user, userRole, userLoading, charactersFromDb, charactersLoading, userProfile, userProfileLoading]);
+  }, [user, userRole, userLoading, charactersFromDb, charactersLoading, userProfile, userProfileLoading, firestore]);
 
 
   useEffect(() => {
