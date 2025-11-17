@@ -92,9 +92,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       setErrorMessage(
-        'Gemini APIキーが設定されていません。FirebaseコンソールでAPIキーを取得し、.env.localファイルに NEXT_PUBLIC_GEMINI_API_KEY として設定してください。'
+        'Gemini APIキーが設定されていません。.envファイルに GEMINI_API_KEY として設定してください。'
       );
       return;
     }
