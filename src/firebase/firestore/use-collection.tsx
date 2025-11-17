@@ -31,17 +31,22 @@ export function useCollection<T>(
   const [error, setError] = useState<FirestoreError | null>(null);
   const firestore = useFirestore();
 
+  const filter = options?.filter;
+  const sort = options?.sort;
+  const sortDirection = options?.sortDirection;
+
   const queryMemo = useMemo(() => {
     if (!firestore) return null;
     let q: Query<DocumentData> = collection(firestore, path);
-    if (options?.filter) {
-      q = query(q, where(...options.filter));
+    if (filter) {
+      q = query(q, where(...filter));
     }
-    if (options?.sort) {
-      q = query(q, orderBy(options.sort, options.sortDirection || 'asc'));
+    if (sort) {
+      q = query(q, orderBy(sort, sortDirection || 'asc'));
     }
     return q;
-  }, [path, options, firestore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, firestore, sort, sortDirection, ...(filter || [])]);
 
   useEffect(() => {
     if (!queryMemo) return;
