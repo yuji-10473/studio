@@ -13,7 +13,7 @@ async function generateText(prompt: string, apiKey: string) {
   });
   const model = ai.model('gemini-1.5-flash-latest');
   
-  const { text } = await model.generate({
+  const response = await model.generate({
     prompt,
     config: {
       temperature: 0.8,
@@ -21,7 +21,7 @@ async function generateText(prompt: string, apiKey: string) {
     },
   });
 
-  return text;
+  return response.text;
 }
 
 export async function getAiResponse(
