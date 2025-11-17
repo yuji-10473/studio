@@ -6,42 +6,18 @@ import type { Character } from '@/lib/types';
 import { initializeFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
-async function generateText(prompt: string) {
-  // We cannot use the global `ai` object from `@/ai/genkit` because
-  // we need to provide the API key dynamically at runtime.
-  // Instead, we initialize the Google AI plugin with the provided key.
-  const apiKey = process.env.GEMINI_API_KEY!;
-  const ai = genkit({
-    plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
-  });
-  // Per AI_Rules.md, we must use gemini-2.5-flash.
-  const model = googleAI.model('gemini-2.5-flash');
-
-  const response = await ai.generate({
-    model,
-    prompt,
-    config: {
-      temperature: 0.8,
-      maxOutputTokens: 200,
-    },
-  });
-
-  return response.text;
-}
-
 export async function getAiResponse(
   character: Character,
   userMessage: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!process.env.GEMINI_API_KEY) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     return {
       success: false,
       message: 'GEMINI_API_KEYが設定されていません。.envファイルを確認してください。',
     };
   }
 
-  // This prompt is adapted from `src/ai/flows/dynamic-character-introduction.ts`
-  // It instructs the AI on how to behave as the character.
   const prompt = `あなたはこれからロールプレイングゲームのキャラクターとして振る舞います。
 
 # キャラクター設定
@@ -61,7 +37,27 @@ export async function getAiResponse(
 ${character.name}: `;
 
   try {
-    const aiMessage = await generateText(prompt);
+    // Re-initialize genkit with the API key, similar to the working debug action.
+    const ai = genkit({
+      plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
+    });
+    // Per AI_Rules.md, we must use gemini-2.5-flash.
+    const model = googleAI.model('gemini-2.5-flash');
+
+    const response = await ai.generate({
+      model,
+      prompt,
+      config: {
+        temperature: 0.8,
+        maxOutputTokens: 200,
+      },
+    });
+
+    const aiMessage = response.text;
+
+    if (!aiMessage) {
+        throw new Error('AIから空の応答が返されました。');
+    }
 
     // Log conversation to Firestore for debugging
     const { firestore } = initializeFirebase();
