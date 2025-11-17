@@ -6,6 +6,8 @@ import { googleAI } from '@genkit-ai/google-genai';
 import { isGenkitError } from '@/lib/genkit';
 import { initializeFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // Initialize Genkit and AI model directly in the server action
 const apiKey = process.env.GEMINI_API_KEY;
@@ -76,20 +78,29 @@ ${character.name}: `;
         }
     }
 
+    const { firestore } = initializeFirebase();
+    const errorsCollection = collection(firestore, 'conversations_errors');
+    const errorData = {
+        characterName: character.name,
+        userMessage: userMessage,
+        prompt: prompt, // プロンプトを記録
+        error: errorMessage,
+        timestamp: serverTimestamp(),
+    };
 
     // Also log errors to Firestore
-     try {
-        const { firestore } = initializeFirebase();
-        await addDoc(collection(firestore, 'conversations_errors'), {
-            characterName: character.name,
-            userMessage: userMessage,
-            prompt: prompt, // プロンプトを記録
-            error: errorMessage,
-            timestamp: serverTimestamp(),
+     addDoc(errorsCollection, errorData)
+        .catch(async (dbError) => {
+            const permissionError = new FirestorePermissionError({
+                path: errorsCollection.path,
+                operation: 'create',
+                requestResourceData: errorData,
+            }, dbError);
+            errorEmitter.emit('permission-error', permissionError);
+            // Log to console if logging to Firestore fails
+            console.error("Failed to log error to Firestore due to permissions:", permissionError);
+            console.error("Original AI Error:", error);
         });
-    } catch (dbError) {
-        console.error("Failed to log error to Firestore:", dbError);
-    }
 
 
     return {
