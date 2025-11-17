@@ -30,6 +30,7 @@ export type DynamicCharacterIntroductionInput = z.infer<
 
 const DynamicCharacterIntroductionOutputSchema = z.object({
   aiResponse: z.string().describe('The AI character response.'),
+  sentimentScore: z.number().describe('The sentiment score of the AI response.'),
   prompt: z.string().describe('The full prompt sent to the AI.'),
   rawResponse: z.any().describe('The raw response from the AI model.'),
 });
@@ -52,8 +53,8 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 # ルール
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定に忠実に、自然な会話をしてください。
-- 回答は日本語で、簡潔かつ会話的にしてください。
 - 以下の会話履歴の続きを自然に生成してください。
+- 会話内容を評価し、-1.0（ネガティブ）から1.0（ポジティブ）の範囲で感情スコア(sentimentScore)を付けてください。
 
 {{#conversationHistory.length}}
 # これまでの会話
@@ -62,13 +63,18 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 {{/conversationHistory}}
 {{/conversationHistory.length}}
 
-上記の設定になりきって、以下のユーザーからのメッセージに応答してください。
-
+ユーザーからのメッセージに応答してください。
 ---
 ユーザー: {{userMessage}}
 ---
 
-{{characterName}}:
+あなたの回答は、以下のJSONスキーマのみを含み、他の説明や前置き、後書きは一切含めないでください。
+\`\`\`json
+{
+  "aiResponse": "ここに{{characterName}}としての返答を記述します。",
+  "sentimentScore": 0.0
+}
+\`\`\`
 `;
 
 const dynamicCharacterIntroductionFlow = ai.defineFlow(
@@ -87,7 +93,6 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
             ...msg,
             isUser: msg.sender === 'user',
         })),
-        // A helper function for mustache to check if the history has items
         "conversationHistory.length": input.conversationHistory.length > 0,
     };
     
@@ -102,10 +107,35 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
       },
     });
 
-    const aiResponse = response.text;
+    const responseText = response.text.trim();
+    let aiResponse = '';
+    let sentimentScore = 0;
+
+    try {
+      // Find the start and end of the JSON block
+      const jsonStart = responseText.indexOf('```json');
+      const jsonEnd = responseText.lastIndexOf('```');
+      let jsonString = responseText;
+
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        jsonString = responseText.substring(jsonStart + 7, jsonEnd).trim();
+      }
+      
+      const parsed = JSON.parse(jsonString);
+      aiResponse = parsed.aiResponse;
+      sentimentScore = parsed.sentimentScore;
+    } catch(e) {
+        console.error("Failed to parse AI response as JSON.", e, "Raw response:", responseText);
+        // If parsing fails, use the raw text as a fallback and score as neutral.
+        // This makes the UI more robust against occasional model failures.
+        aiResponse = responseText;
+        sentimentScore = 0;
+    }
+
 
     return {
       aiResponse,
+      sentimentScore,
       prompt: prompt,
       rawResponse: response,
     };
