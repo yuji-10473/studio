@@ -1,13 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { Character, CharacterId, GameContextType, GameState, Message, CharacterState, UserProfile } from '@/lib/types';
 import { getAiResponse } from '@/actions/chat';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where, updateDoc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 const VIRTUE_THRESHOLD = 80;
@@ -43,6 +43,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     user: null, // Will be populated by useUser
     loading: true,
     userRole: 'user', // Will be populated by useUser
+    activeAudio: null,
   };
 };
 
@@ -61,6 +62,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Effect for creating user profile on first login
   useEffect(() => {
@@ -148,7 +150,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState, setErrorMessage]);
 
   const endConversation = useCallback(() => {
-    updateState(prev => ({ ...prev, activeConversation: null }));
+    updateState(prev => ({ ...prev, activeConversation: null, activeAudio: null }));
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+    }
   }, [updateState]);
 
   const sendMessage = useCallback(async (text: string) => {
@@ -206,9 +212,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           sender: charId, 
           text: result.message, 
           timestamp: serverTimestamp(),
-          characterId: charId
+          characterId: charId,
+          audio: result.audio
       };
-      await addDoc(conversationHistoryRef, aiMessage);
+      const docRef = await addDoc(conversationHistoryRef, aiMessage);
       
       const currentCharacterState = state.characterStates[charId];
       const moodChange = (result.sentimentScore || 0) * MOOD_MULTIPLIER;
@@ -235,6 +242,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       }, { merge: true });
 
       updateState(prev => ({...prev, isAiResponding: false}));
+      if (result.audio) {
+          playAudio(docRef.id, result.audio);
+      }
       // State will be updated by the Firestore listener, no need to setState here for tok/mood
     } else {
       setErrorMessage(result.message);
@@ -282,6 +292,34 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   }, [firestore, user, toast, state.gameDate, state.characterStates, setErrorMessage]);
 
+  const playAudio = useCallback((messageId: string, audioDataUri: string) => {
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
+    const audio = new Audio(audioDataUri);
+    audioRef.current = audio;
+    setState(prev => ({...prev, activeAudio: messageId}));
+    audio.play();
+    audio.onended = () => {
+        setState(prev => ({...prev, activeAudio: null}));
+        audioRef.current = null;
+    };
+    audio.onerror = (e) => {
+        console.error("Audio playback error", e);
+        setState(prev => ({...prev, activeAudio: null}));
+        audioRef.current = null;
+    }
+  }, []);
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+    }
+    setState(prev => ({...prev, activeAudio: null}));
+  }, []);
+
+
   
   const contextValue: GameContextType = {
     ...state,
@@ -291,6 +329,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateCharacterPersona,
     stayAtInn,
     setErrorMessage,
+    playAudio,
+    stopAudio,
   };
 
   return (

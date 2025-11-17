@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, LoaderCircle } from 'lucide-react';
+import { Send, Bot, User, LoaderCircle, Volume2, PlayCircle } from 'lucide-react';
 import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
@@ -32,7 +32,7 @@ type ConversationModalProps = {
 
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const { setErrorMessage } = useGameState();
+  const { setErrorMessage, activeAudio, playAudio, stopAudio } = useGameState();
   const { user } = useUser();
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
   
@@ -46,7 +46,6 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
       sortDirection: 'asc',
     }
   );
-
 
   useEffect(() => {
     if (error) {
@@ -96,13 +95,23 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
             </Avatar>
             <div
               className={cn(
-                'p-3 rounded-lg text-sm whitespace-pre-wrap',
+                'p-3 rounded-lg text-sm whitespace-pre-wrap relative group',
                 msg.sender === 'user'
                   ? 'bg-primary text-primary-foreground rounded-br-none'
                   : 'bg-muted rounded-bl-none'
               )}
             >
               {msg.text}
+              {msg.audio && msg.id && (
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute -top-4 -right-4 h-8 w-8 text-muted-foreground opacity-20 group-hover:opacity-100 transition-opacity"
+                    onClick={() => activeAudio === msg.id ? stopAudio() : playAudio(msg.id!, msg.audio!)}
+                  >
+                    {activeAudio === msg.id ? <PlayCircle className="w-5 h-5 text-primary animate-pulse" /> : <Volume2 className="w-5 h-5" />}
+                  </Button>
+              )}
             </div>
           </div>
         ))}
@@ -119,10 +128,13 @@ export default function ConversationModal({
   characterState,
   characterId,
 }: ConversationModalProps) {
-  const { sendMessage, isAiResponding, userRole } = useGameState();
+  const { sendMessage, isAiResponding, userRole, activeAudio } = useGameState();
   const [message, setMessage] = useState('');
   
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const isResponding = isAiResponding || !!activeAudio;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,9 +188,9 @@ export default function ConversationModal({
                   handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
                 }
               }}
-              disabled={isAiResponding}
+              disabled={isResponding}
             />
-            <Button type="submit" size="icon" disabled={!message.trim() || isAiResponding}>
+            <Button type="submit" size="icon" disabled={!message.trim() || isResponding}>
               <Send className="h-4 w-4" />
             </Button>
           </form>

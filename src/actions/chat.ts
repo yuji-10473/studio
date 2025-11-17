@@ -7,12 +7,13 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { dynamicCharacterIntroduction } from '@/ai/flows/dynamic-character-introduction';
+import { textToSpeech } from '@/ai/flows/tts-flow';
 
 export async function getAiResponse(
   character: Character,
   userMessage: string,
   conversationHistory: Message[]
-): Promise<{ success: boolean; message: string; sentimentScore?: number }> {
+): Promise<{ success: boolean; message: string; audio?: string; sentimentScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
 
@@ -42,22 +43,6 @@ export async function getAiResponse(
     const sentimentScore = response.sentimentScore;
     const rawResponse = response.rawResponse;
 
-    // Log success with full response - REMOVED FOR COST SAVING
-    // logData.response = {
-    //     text: aiMessage,
-    //     sentimentScore,
-    //     fullResponse: JSON.parse(JSON.stringify(rawResponse))
-    // };
-    
-    // addDoc(conversationsCollection, logData).catch(async (dbError) => {
-    //     const permissionError = new FirestorePermissionError({
-    //         path: conversationsCollection.path,
-    //         operation: 'create',
-    //         requestResourceData: logData,
-    //     }, dbError);
-    //     errorEmitter.emit('permission-error', permissionError);
-    // });
-
     if (!aiMessage && aiMessage !== "") { // Handle cases where the AI returns an empty string
         const finishReason = rawResponse?.candidates?.[0]?.finishReason;
         if (finishReason === 'MAX_TOKENS' || finishReason === 'LENGTH') {
@@ -66,7 +51,10 @@ export async function getAiResponse(
         throw new Error('AIから空の応答が返されました。');
     }
 
-    return { success: true, message: aiMessage, sentimentScore };
+    // Generate audio from the AI's response text
+    const { audio } = await textToSpeech(aiMessage);
+
+    return { success: true, message: aiMessage, audio, sentimentScore };
 
   } catch (error) {
     console.error('Error getting AI response:', error);
