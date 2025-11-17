@@ -23,14 +23,20 @@ export async function createCharacter(characterData: Omit<Character, 'id' | 'ima
             operation: 'create',
             requestResourceData: newCharacterData,
         }, serverError);
+        // Emit the error so the dev overlay can pick it up
         errorEmitter.emit('permission-error', permissionError);
-        // Throw the error to be caught by the outer try/catch block
+        // Also throw it to be caught by the local try/catch
         throw permissionError;
       });
 
     return { success: true, message: 'キャラクターを作成しました。', id: docRef.id };
   } catch (error) {
     console.error('Error creating character:', error);
+    // Return the specific permission error message if it's our custom type
+    if (error instanceof FirestorePermissionError) {
+        return { success: false, message: `キャラクターの作成に失敗しました: ${error.message}` };
+    }
+    // Generic error message for other cases
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { success: false, message: `キャラクターの作成中にエラーが発生しました:\n${errorMessage}` };
   }
