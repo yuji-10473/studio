@@ -73,9 +73,13 @@ export async function getAiResponse(
     let errorMessage = error instanceof Error ? error.message : String(error);
 
      if (isGenkitError(error)) {
-        errorMessage = `API Error (${error.code}): ${error.message}`;
-        if (error.cause) {
-            errorMessage += `\nCause: ${JSON.stringify(error.cause, null, 2)}`;
+        if (error.code === 'unavailable') {
+            errorMessage = 'AIが現在混み合っています。少し時間をおいてから、もう一度試してみてください。';
+        } else {
+            errorMessage = `API Error (${error.code}): ${error.message}`;
+            if (error.cause) {
+                errorMessage += `\nCause: ${JSON.stringify(error.cause, null, 2)}`;
+            }
         }
     }
     
