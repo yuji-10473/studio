@@ -79,9 +79,7 @@ export async function getAiResponse(
     }
     
     // Populate request data even on error, if possible
-    if (!logData.request.renderedPrompt) {
-        logData.request = flowInput;
-    }
+    logData.request = flowInput;
 
     logData.error = errorMessage;
     addDoc(conversationsCollection, logData).catch(async (dbError) => {
@@ -99,3 +97,5 @@ export async function getAiResponse(
     };
   }
 }
+
+    
