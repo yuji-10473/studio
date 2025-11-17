@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "elara-image",
+      "description": "A kind-looking baker woman with a warm smile, standing in a rustic bakery.",
+      "imageUrl": "https://images.unsplash.com/photo-1610896011062-1df767af9f6a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxiYWtlciUyMHdvbWFufGVufDB8fHx8MTc2MzM0ODA4MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "baker woman"
+    },
+    {
+      "id": "leon-image",
+      "description": "A stern but noble-looking fantasy guard in armor, standing before a castle gate.",
+      "imageUrl": "https://images.unsplash.com/photo-1677916042908-ef67437da720?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmYW50YXN5JTIwZ3VhcmR8ZW58MHx8fHwxNzYzMzQ4MDgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy guard"
+    },
+    {
+      "id": "seraphina-image",
+      "description": "A mysterious female wizard in a dark robe, holding a glowing orb in a forest.",
+      "imageUrl": "https://images.unsplash.com/photo-1596425899470-d3df98b1b018?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmYW50YXN5JTIwd2l6YXJkfGVufDB8fHx8MTc2MzI2NTkxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy wizard"
+    }
+  ]
 }

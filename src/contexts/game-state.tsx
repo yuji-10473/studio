@@ -1,0 +1,239 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { CHARACTERS, Character, CharacterId, GameContextType, GameState, Message, CharacterState } from '@/lib/types';
+import { getAiResponse } from '@/actions/chat';
+import { useToast } from '@/hooks/use-toast';
+
+const VIRTUE_THRESHOLD = 80;
+const VIRTUE_AWARD = 10;
+const MOOD_INCREASE = 15;
+const STORAGE_KEY = 'townfolk-tales-gamestate';
+
+const GameStateContext = createContext<GameContextType | undefined>(undefined);
+
+const createInitialState = (): GameState => {
+  const characterStates = Object.keys(CHARACTERS).reduce((acc, key) => {
+    acc[key as CharacterId] = {
+      mood: 50,
+      conversationHistory: [],
+      tokAwarded: false,
+    };
+    return acc;
+  }, {} as Record<CharacterId, CharacterState>);
+
+  return {
+    characters: { ...CHARACTERS },
+    characterStates,
+    tok: 0,
+    gameDate: 1,
+    activeConversation: null,
+    isApiKeyDialogOpen: false,
+    apiKey: null,
+    isAiResponding: false,
+  };
+};
+
+export function GameStateProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<GameState>(createInitialState());
+  const [isLoaded, setIsLoaded] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      const savedStateJSON = localStorage.getItem(STORAGE_KEY);
+      if (savedStateJSON) {
+        const savedState = JSON.parse(savedStateJSON);
+        // Ensure character data is up-to-date with latest from types.ts
+        // while preserving saved persona edits
+        const updatedCharacters = { ...CHARACTERS };
+        if (savedState.characters) {
+            for (const charId in updatedCharacters) {
+                if (savedState.characters[charId]) {
+                    updatedCharacters[charId as CharacterId].description = savedState.characters[charId].description;
+                }
+            }
+        }
+        
+        setState({ ...createInitialState(), ...savedState, characters: updatedCharacters });
+      } else {
+        setState(createInitialState());
+      }
+    } catch (error) {
+      console.error("Failed to load game state from localStorage", error);
+      setState(createInitialState());
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        const stateToSave = { ...state, activeConversation: null, isAiResponding: false };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (error) {
+        console.error("Failed to save game state to localStorage", error);
+      }
+    }
+  }, [state, isLoaded]);
+  
+  const updateState = useCallback((updater: (prevState: GameState) => GameState) => {
+    setState(updater);
+  }, []);
+
+  const startConversation = useCallback((characterId: CharacterId) => {
+    updateState(prev => ({ ...prev, activeConversation: characterId }));
+  }, [updateState]);
+
+  const endConversation = useCallback(() => {
+    updateState(prev => ({ ...prev, activeConversation: null }));
+  }, [updateState]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!state.activeConversation || !text.trim() || state.isAiResponding) return;
+
+    const charId = state.activeConversation;
+    const userMessage: Message = { sender: 'user', text, id: Date.now() };
+
+    updateState(prev => ({
+      ...prev,
+      isAiResponding: true,
+      characterStates: {
+        ...prev.characterStates,
+        [charId]: {
+          ...prev.characterStates[charId],
+          conversationHistory: [...prev.characterStates[charId].conversationHistory, userMessage],
+        },
+      },
+    }));
+
+    const result = await getAiResponse(state.characters[charId], text, state.apiKey || '');
+    
+    if (result.success) {
+      const aiMessage: Message = { sender: charId, text: result.message, id: Date.now() + 1 };
+      updateState(prev => {
+        const currentCharacterState = prev.characterStates[charId];
+        const newMood = Math.min(100, currentCharacterState.mood + MOOD_INCREASE);
+        let newTok = prev.tok;
+        let tokAwarded = currentCharacterState.tokAwarded;
+
+        if (newMood >= VIRTUE_THRESHOLD && !tokAwarded) {
+          newTok += VIRTUE_AWARD;
+          tokAwarded = true;
+          toast({
+            title: "徳を獲得！",
+            description: `${prev.characters[charId].name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
+          });
+        }
+        
+        return {
+          ...prev,
+          isAiResponding: false,
+          tok: newTok,
+          characterStates: {
+            ...prev.characterStates,
+            [charId]: {
+              ...currentCharacterState,
+              mood: newMood,
+              tokAwarded: tokAwarded,
+              conversationHistory: [...currentCharacterState.conversationHistory, aiMessage],
+            },
+          },
+        };
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "エラー",
+        description: result.message,
+      });
+      updateState(prev => ({
+        ...prev,
+        isAiResponding: false,
+        characterStates: {
+          ...prev.characterStates,
+          [charId]: {
+            ...prev.characterStates[charId],
+            // Remove the user message that failed to get a response
+            conversationHistory: prev.characterStates[charId].conversationHistory.slice(0, -1),
+          },
+        },
+      }));
+    }
+  }, [state.activeConversation, state.apiKey, state.isAiResponding, state.characters, updateState, toast]);
+
+  const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
+    updateState(prev => ({
+      ...prev,
+      characters: {
+        ...prev.characters,
+        [characterId]: {
+          ...prev.characters[characterId],
+          description,
+        },
+      },
+    }));
+    toast({ title: "ペルソナ更新", description: `${state.characters[characterId].name}のペルソナを更新しました。`});
+  }, [updateState, toast, state.characters]);
+
+  const stayAtInn = useCallback(() => {
+    updateState(prev => {
+      const resetCharacterStates = Object.keys(prev.characters).reduce((acc, key) => {
+        acc[key as CharacterId] = { mood: 50, conversationHistory: [], tokAwarded: false };
+        return acc;
+      }, {} as Record<CharacterId, CharacterState>);
+      
+      return {
+        ...prev,
+        gameDate: prev.gameDate + 1,
+        characterStates: resetCharacterStates,
+      }
+    });
+    toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
+  }, [updateState, toast]);
+
+  const setApiKey = useCallback((key: string) => {
+    updateState(prev => ({ ...prev, apiKey: key, isApiKeyDialogOpen: false }));
+    toast({ title: "APIキー設定", description: "APIキーを保存しました。"});
+  }, [updateState, toast]);
+  
+  const openApiKeyDialog = useCallback(() => {
+    updateState(prev => ({...prev, isApiKeyDialogOpen: true}));
+  }, [updateState]);
+
+  const closeApiKeyDialog = useCallback(() => {
+    updateState(prev => ({...prev, isApiKeyDialogOpen: false}));
+  }, [updateState]);
+
+
+  const contextValue = {
+    ...state,
+    startConversation,
+    endConversation,
+    sendMessage,
+    updateCharacterPersona,
+    stayAtInn,
+    setApiKey,
+    openApiKeyDialog,
+    closeApiKeyDialog,
+  };
+  
+  if (!isLoaded) {
+    // Render a loading state or nothing until the state is loaded from localStorage
+    return null;
+  }
+
+  return (
+    <GameStateContext.Provider value={contextValue}>
+      {children}
+    </GameStateContext.Provider>
+  );
+}
+
+export const useGameState = (): GameContextType => {
+  const context = useContext(GameStateContext);
+  if (context === undefined) {
+    throw new Error('useGameState must be used within a GameStateProvider');
+  }
+  return context;
+};
