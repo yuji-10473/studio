@@ -162,18 +162,23 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [state.activeConversation, state.isAiResponding, state.characters, updateState, toast, setErrorMessage]);
 
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
-    updateState(prev => ({
-      ...prev,
-      characters: {
+    updateState(prev => {
+      const newCharacters = {
         ...prev.characters,
         [characterId]: {
           ...prev.characters[characterId],
           description,
         },
-      },
-    }));
-    toast({ title: "ペルソナ更新", description: `${state.characters[characterId].name}のペルソナを更新しました。`});
-  }, [updateState, toast, state.characters]);
+      };
+      
+      toast({ title: "ペルソナ更新", description: `${newCharacters[characterId].name}のペルソナを更新しました。`});
+
+      return {
+        ...prev,
+        characters: newCharacters,
+      };
+    });
+  }, [updateState, toast]);
 
   const stayAtInn = useCallback(() => {
     updateState(prev => {
@@ -182,13 +187,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         return acc;
       }, {} as Record<CharacterId, CharacterState>);
       
+      toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
+
       return {
         ...prev,
         gameDate: prev.gameDate + 1,
         characterStates: resetCharacterStates,
       }
     });
-    toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
   }, [updateState, toast]);
 
   const contextValue = {
