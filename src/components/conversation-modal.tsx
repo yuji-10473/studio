@@ -111,7 +111,7 @@ export default function ConversationModal({
   characterState,
   characterId,
 }: ConversationModalProps) {
-  const { sendMessage, isAiResponding } = useGameState();
+  const { sendMessage, isAiResponding, userRole } = useGameState();
   const [message, setMessage] = useState('');
   
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
@@ -149,9 +149,11 @@ export default function ConversationModal({
              </div>
         )}
         
-        <div className="p-4 border-t">
-          <PersonaEditor character={character} characterId={characterId} />
-        </div>
+        {userRole === 'admin' && (
+          <div className="p-4 border-t">
+            <PersonaEditor character={character} characterId={characterId} />
+          </div>
+        )}
 
         <DialogFooter className="p-4 border-t">
           <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
