@@ -3,6 +3,8 @@ import { createContext, useContext, useMemo } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import { ErrorBoundary } from 'react-error-boundary';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 // Define the shape of the context value
 interface FirebaseContextValue {
@@ -16,6 +18,12 @@ const FirebaseContext = createContext<FirebaseContextValue | undefined>(
   undefined
 );
 
+function FirebaseErrorFallback({ error }: { error: Error }) {
+    // This is a silent fallback. The actual error is shown in the dev overlay.
+    return null;
+}
+
+
 // Define the provider component
 export function FirebaseProvider({
   children,
@@ -28,7 +36,10 @@ export function FirebaseProvider({
   const memoizedValue = useMemo(() => value, [value]);
   return (
     <FirebaseContext.Provider value={memoizedValue}>
-      {children}
+      <ErrorBoundary FallbackComponent={FirebaseErrorFallback}>
+        {process.env.NODE_ENV === 'development' && <FirebaseErrorListener />}
+        {children}
+      </ErrorBoundary>
     </FirebaseContext.Provider>
   );
 }

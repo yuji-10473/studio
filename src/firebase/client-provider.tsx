@@ -10,6 +10,8 @@ export function FirebaseClientProvider({
   children: React.ReactNode;
 }) {
   return (
-    <FirebaseProvider value={initializeFirebase()}>{children}</FirebaseProvider>
+    <FirebaseProvider value={initializeFirebase()}>
+      {children}
+    </FirebaseProvider>
   );
 }
