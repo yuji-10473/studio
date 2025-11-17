@@ -3,11 +3,15 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // WARNING: This is a temporary rule for development purposes.
-    // It allows anyone to read and write to the database.
-    // TODO: Secure your database before deploying to production.
-    match /{document=**} {
+    // For testing purposes, allow anyone to read and write to the debug_writes collection.
+    match /debug_writes/{docId} {
       allow read, write: if true;
+    }
+    
+    // By default, disallow all other reads and writes.
+    // As you build your app, you will need to add specific rules for other collections.
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }
