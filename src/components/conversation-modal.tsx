@@ -44,7 +44,7 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     { 
       sort: 'timestamp', 
       sortDirection: 'asc',
-      filter: ['characterId', '==', characterId]
+      // filter: ['characterId', '==', characterId] // Temporarily disable filter for debugging
     }
   );
 
@@ -58,8 +58,9 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   const sortedHistory = useMemo(() => {
     if (!conversationHistory) return [];
     // The query now sorts by timestamp, so we can just use the data as is.
-    return conversationHistory;
-  }, [conversationHistory]);
+    // When filter is re-enabled, we might need to filter client-side if the query is the issue.
+    return conversationHistory.filter(msg => msg.characterId === characterId);
+  }, [conversationHistory, characterId]);
 
 
   useEffect(() => {
