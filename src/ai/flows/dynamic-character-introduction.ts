@@ -41,7 +41,10 @@ export async function dynamicCharacterIntroduction(
 const prompt = ai.definePrompt({
   name: 'dynamicCharacterIntroductionPrompt',
   input: {schema: DynamicCharacterIntroductionInputSchema},
-  output: {schema: DynamicCharacterIntroductionOutputSchema},
+  output: {
+    format: 'json',
+    schema: DynamicCharacterIntroductionOutputSchema,
+  },
   model: model,
   config: {
     temperature: 0.8,
@@ -59,6 +62,7 @@ const prompt = ai.definePrompt({
 - キャラクター設定に忠実に、自然な会話をしてください。
 - 会話の中で、自己紹介文（「紹介」の内容）を不自然にならないように織り交ぜてみましょう。毎回言う必要はありません。
 - 回答は日本語で、簡潔かつ会話的にしてください。
+- 応答は必ずJSON形式で返してください。
 
 # ユーザーとの会話
 ユーザー: 「{{userMessage}}」
