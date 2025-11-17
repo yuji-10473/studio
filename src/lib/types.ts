@@ -57,6 +57,7 @@ export type UserProfile = {
   displayName: string;
   tok: number;
   gameDate: number;
+  enableTTS?: boolean; // Text-to-speech setting
   role?: UserRole; // Optional as it might not be on every user doc
   isAdmin?: boolean; // Kept for logic in use-user, but role is preferred
 }
@@ -73,6 +74,7 @@ export type GameState = {
   loading: boolean;
   userRole: UserRole;
   isSpeaking: boolean;
+  enableTTS: boolean; // Text-to-speech setting
 };
 
 export type GameContextType = GameState & {
@@ -84,4 +86,5 @@ export type GameContextType = GameState & {
   setErrorMessage: (message: string) => void;
   speak: (text: string, onEnd?: () => void) => void;
   cancelSpeech: () => void;
+  setEnableTTS: (enabled: boolean) => void;
 };

@@ -44,6 +44,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     loading: true,
     userRole: 'user', // Will be populated by useUser
     isSpeaking: false,
+    enableTTS: false, // Default TTS to off
   };
 };
 
@@ -76,6 +77,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                     displayName: user.displayName || user.email?.split('@')[0] || 'New User',
                     tok: 0,
                     gameDate: 1,
+                    enableTTS: false, // Default on creation
                 };
                 setDoc(userDocRef, newUserProfile);
             }
@@ -104,7 +106,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             return acc;
         }, {} as Record<CharacterId, CharacterState>);
         
-        // If a new character was added, we might need to create a state for them
         if (user && firestore && characters.length > userStates.length) {
             const batch = writeBatch(firestore);
             characters.forEach(char => {
@@ -124,6 +125,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             characterStates,
             tok: userProfile?.tok ?? 0,
             gameDate: userProfile?.gameDate ?? 1,
+            enableTTS: userProfile?.enableTTS ?? false, // Load TTS setting, default to false
             loading: false,
         };
     });
@@ -147,8 +149,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   const cancelSpeech = useCallback(() => {
     if (speechPingIntervalRef.current) {
-        clearInterval(speechPingIntervalRef.current);
-        speechPingIntervalRef.current = null;
+      clearInterval(speechPingIntervalRef.current);
+      speechPingIntervalRef.current = null;
     }
     if (window.speechSynthesis && window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
@@ -156,15 +158,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (utteranceRef.current) {
       utteranceRef.current = null;
     }
-    // Prevent a stuck "isSpeaking" state if speech is cancelled mid-way
     if (state.isSpeaking) {
       updateState(prev => ({ ...prev, isSpeaking: false }));
     }
   }, [updateState, state.isSpeaking]);
 
   const speak = useCallback((text: string, onEnd?: () => void) => {
-    if (!window.speechSynthesis) {
-        console.warn("Web Speech API is not supported by this browser.");
+    if (!state.enableTTS || !window.speechSynthesis) {
         onEnd?.();
         return;
     }
@@ -185,42 +185,37 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     };
 
     utterance.onstart = () => {
-        updateState(prev => ({ ...prev, isSpeaking: true }));
-        speechPingIntervalRef.current = setInterval(() => {
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.pause();
-                window.speechSynthesis.resume();
-            }
-        }, 15000);
+      updateState(prev => ({ ...prev, isSpeaking: true }));
+      speechPingIntervalRef.current = setInterval(() => {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      }, 15000);
     };
     
     utterance.onend = handleEnd;
     utterance.onerror = (event) => {
         console.error("SpeechSynthesisUtterance.onerror", event);
-        handleEnd();
+        handleEnd(); // Ensure state is cleaned up on error
     };
 
     utteranceRef.current = utterance;
 
-    // Use onvoiceschanged to ensure voices are loaded
-    if (window.speechSynthesis.getVoices().length === 0) {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
+        if (japaneseVoice) utterance.voice = japaneseVoice;
+        window.speechSynthesis.speak(utterance);
+    } else {
         window.speechSynthesis.onvoiceschanged = () => {
-            const voices = window.speechSynthesis.getVoices();
-            const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
-            if (japaneseVoice) {
-                utterance.voice = japaneseVoice;
-            }
+            const updatedVoices = window.speechSynthesis.getVoices();
+            const japaneseVoice = updatedVoices.find(voice => voice.lang === 'ja-JP');
+            if (japaneseVoice) utterance.voice = japaneseVoice;
             window.speechSynthesis.speak(utterance);
         };
-    } else {
-        const voices = window.speechSynthesis.getVoices();
-        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
-        if (japaneseVoice) {
-            utterance.voice = japaneseVoice;
-        }
-        window.speechSynthesis.speak(utterance);
     }
-  }, [updateState, cancelSpeech]);
+  }, [state.enableTTS, updateState, cancelSpeech]);
 
   const startConversation = useCallback((characterId: CharacterId) => {
     updateState(prev => ({ ...prev, activeConversation: characterId }));
@@ -230,7 +225,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     cancelSpeech();
     updateState(prev => ({ ...prev, activeConversation: null }));
   }, [updateState, cancelSpeech]);
-
 
   const sendMessage = useCallback(async (text: string) => {
     if (!state || !state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user) return;
@@ -255,21 +249,17 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     updateState(prev => ({ ...prev, isAiResponding: true }));
 
-    
-    // Simplified query to avoid composite index requirement
     const historyQuery = query(
         conversationHistoryRef,
         orderBy('timestamp', 'desc'), 
-        limit(20) // Fetch a bit more to have enough history for the active character
+        limit(20)
     );
     const historySnapshot = await getDocs(historyQuery);
     
-    // Filter for the correct character client-side
     const plainHistory = historySnapshot.docs.map(doc => {
       const data = doc.data();
       return { ...data, timestamp: (data.timestamp as Timestamp).toDate().toISOString() };
     }).filter(msg => msg.characterId === charId).reverse() as Message[];
-
 
     await addDoc(conversationHistoryRef, userMessage);
 
@@ -308,7 +298,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         });
         
         const userDocRef = doc(firestore, 'users', user.uid);
-        await setDoc(userDocRef, { tok: newTok }, { merge: true });
+        await updateDoc(userDocRef, { tok: newTok });
       }
 
       const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
@@ -318,7 +308,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       }, { merge: true });
 
       speak(result.message);
-      // State will be updated by the Firestore listener, no need to setState here for tok/mood
     } else {
       setErrorMessage(result.message);
     }
@@ -327,7 +316,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
     if (!firestore) return;
     const characterDocRef = doc(firestore, 'characters', characterId);
-    setDoc(characterDocRef, { description }, { merge: true })
+    updateDoc(characterDocRef, { description })
       .then(() => {
         toast({ title: "ペルソナ更新", description: `${characterId}のペルソナを更新しました。`});
       })
@@ -354,12 +343,28 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     try {
         await batch.commit();
         toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
-        // Local state will update via Firestore listeners
     } catch (error) {
         setErrorMessage(`宿に泊まる処理中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
 
   }, [firestore, user, toast, state.gameDate, state.characterStates, setErrorMessage]);
+  
+  const setEnableTTS = useCallback(async (enabled: boolean) => {
+    if (!user || !firestore) return;
+    updateState(prev => ({...prev, enableTTS: enabled}));
+    const userDocRef = doc(firestore, 'users', user.uid);
+    try {
+      await updateDoc(userDocRef, { enableTTS: enabled });
+      if (!enabled) {
+        cancelSpeech();
+      }
+    } catch(e) {
+      console.error("Failed to update TTS setting:", e);
+      setErrorMessage("音声設定の保存に失敗しました。");
+      // Revert optimistic update
+      updateState(prev => ({...prev, enableTTS: !enabled}));
+    }
+  }, [user, firestore, updateState, cancelSpeech, setErrorMessage]);
   
   const contextValue: GameContextType = {
     ...state,
@@ -371,6 +376,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setErrorMessage,
     speak,
     cancelSpeech,
+    setEnableTTS,
   };
 
   return (

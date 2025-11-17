@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,13 +29,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { generateAndCreateCharacter } from '@/actions/character';
+import { Switch } from './ui/switch';
+import { Label } from './ui/label';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
 };
 
 export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
-  const { user, userRole, tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
+  const { user, userRole, tok, gameDate, stayAtInn, setErrorMessage, enableTTS, setEnableTTS } = useGameState();
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
@@ -92,6 +94,13 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     await signOut(auth);
     toast({ title: 'ログアウトしました。' });
   };
+  
+  const handleTtsToggle = (checked: boolean) => {
+    setEnableTTS(checked);
+    toast({
+      title: `音声読み上げを${checked ? 'ON' : 'OFF'}にしました。`,
+    });
+  }
 
   const isAdmin = userRole === 'admin';
 
@@ -155,35 +164,54 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
               </Button>
             )}
 
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Cog className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleTestKey} disabled={isTestingKey}>
-                    {isTestingKey ? (
-                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <KeyRound className="mr-2 h-4 w-4" />
-                    )}
-                    <span>APIキーをテスト</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
-                    {isTestingFirestore ? (
-                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Database className="mr-2 h-4 w-4" />
-                    )}
-                    <span>Firestore書き込みテスト</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Cog className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>設定</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <div className="flex items-center justify-between w-full">
+                    <Label htmlFor="tts-toggle" className="flex items-center gap-2 cursor-pointer">
+                      <Volume2 className="h-4 w-4" />
+                      <span>音声読み上げ</span>
+                    </Label>
+                    <Switch
+                      id="tts-toggle"
+                      checked={enableTTS}
+                      onCheckedChange={handleTtsToggle}
+                    />
+                  </div>
+                </DropdownMenuItem>
+
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleTestKey} disabled={isTestingKey}>
+                      {isTestingKey ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <KeyRound className="mr-2 h-4 w-4" />
+                      )}
+                      <span>APIキーをテスト</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
+                      {isTestingFirestore ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Database className="mr-2 h-4 w-4" />
+                      )}
+                      <span>Firestore書き込みテスト</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
           </div>
         </div>
