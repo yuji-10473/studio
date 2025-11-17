@@ -92,6 +92,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState]);
 
   const sendMessage = useCallback(async (text: string) => {
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      setErrorMessage(
+        'Gemini APIキーが設定されていません。FirebaseコンソールでAPIキーを取得し、.env.localファイルに NEXT_PUBLIC_GEMINI_API_KEY として設定してください。'
+      );
+      return;
+    }
     if (!state.activeConversation || !text.trim() || state.isAiResponding) return;
 
     setErrorMessage('');
@@ -114,6 +120,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     
     if (result.success) {
       const aiMessage: Message = { sender: charId, text: result.message, id: Date.now() + 1 };
+      
       updateState(prev => {
         const currentCharacterState = prev.characterStates[charId];
         const newMood = Math.min(100, currentCharacterState.mood + MOOD_INCREASE);
