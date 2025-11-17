@@ -10,19 +10,23 @@ import {
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
 
-export function useDoc<T>(path: string) {
+export function useDoc<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
   const firestore = useFirestore();
 
   const docRefMemo = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !path) return null;
     return doc(firestore, path) as DocumentReference<DocumentData>;
   }, [path, firestore]);
 
   useEffect(() => {
-    if (!docRefMemo) return;
+    if (!docRefMemo) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
     setLoading(true);
 
     const unsubscribe = onSnapshot(

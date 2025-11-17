@@ -43,9 +43,15 @@ export type Message = {
 
 export type CharacterState = {
   mood: number;
-  conversationHistory: Message[]; // This is now primarily managed in Firestore
+  // conversationHistory is now fully managed in Firestore subcollections
   tokAwarded: boolean;
 };
+
+export type UserProfile = {
+  id?: string;
+  tok: number;
+  gameDate: number;
+}
 
 export type GameState = {
   characters: Character[] | null;

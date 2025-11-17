@@ -12,7 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterId } from '@/lib/types';
-import { Bot } from 'lucide-react';
+import { Bot, LoaderCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type PersonaEditorProps = {
   character: Character;
@@ -20,11 +21,26 @@ type PersonaEditorProps = {
 };
 
 export default function PersonaEditor({ character, characterId }: PersonaEditorProps) {
-  const { updateCharacterPersona } = useGameState();
+  const { updateCharacterPersona, setErrorMessage } = useGameState();
   const [description, setDescription] = useState(character.description);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
-  const handleSave = () => {
-    updateCharacterPersona(characterId, description);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setErrorMessage('');
+    try {
+      await updateCharacterPersona(characterId, description);
+      toast({
+        title: "成功",
+        description: "キャラクターのペルソナを更新しました。"
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '不明なエラーが発生しました。';
+      setErrorMessage(`ペルソナの更新に失敗しました: ${message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -46,12 +62,14 @@ export default function PersonaEditor({ character, characterId }: PersonaEditorP
                 onChange={(e) => setDescription(e.target.value)}
                 rows={6}
                 className="text-xs"
+                disabled={isSaving}
               />
               <p className="text-xs text-muted-foreground">
                 この内容に基づいてAIがキャラクターとして応答します。
               </p>
             </div>
-            <Button onClick={handleSave} size="sm">
+            <Button onClick={handleSave} size="sm" disabled={isSaving || description === character.description}>
+              {isSaving && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
               ペルソナを保存
             </Button>
           </div>
