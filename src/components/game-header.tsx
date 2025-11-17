@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,11 +16,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { checkApiKey } from '@/actions/debug';
+import { testFirestoreWrite } from '@/actions/firestore-debug';
 import { useToast } from '@/hooks/use-toast';
 
 export default function GameHeader() {
   const { tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
+  const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -36,6 +38,21 @@ export default function GameHeader() {
       setErrorMessage(result.message);
     }
     setIsTestingKey(false);
+  };
+  
+  const handleTestFirestoreWrite = async () => {
+    setIsTestingFirestore(true);
+    setErrorMessage(''); // Clear previous errors
+    const result = await testFirestoreWrite();
+    if (result.success) {
+      toast({
+        title: "成功",
+        description: result.message,
+      });
+    } else {
+      setErrorMessage(result.message);
+    }
+    setIsTestingFirestore(false);
   };
 
   return (
@@ -63,6 +80,14 @@ export default function GameHeader() {
                 <KeyRound className="mr-2 h-4 w-4" />
               )}
               APIキーをテスト
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
+              {isTestingFirestore ? (
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Firestore書き込みテスト
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>

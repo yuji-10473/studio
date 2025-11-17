@@ -14,8 +14,29 @@ export function initializeFirebase() {
     // These environment variables are set by the `firebase emulators:exec` command
     // when running the Next.js dev server.
     const host = process.env.NEXT_PUBLIC_EMULATOR_HOST;
-    connectAuthEmulator(auth, `http://${host}:9099`);
-    connectFirestoreEmulator(firestore, host, 8080);
+    const authPort = process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT || 9099;
+    const firestorePort = process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080;
+
+    // It's recommended to use 127.0.0.1 for the host instead of `host`
+    // to avoid potential issues with IPv6.
+    const emulatorHost = '127.0.0.1';
+
+    try {
+       // @ts-ignore
+      if (!auth.emulatorConfig) {
+        connectAuthEmulator(auth, `http://${emulatorHost}:${authPort}`);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+    try {
+      // @ts-ignore
+      if (!firestore.emulatorConfig) {
+        connectFirestoreEmulator(firestore, emulatorHost, Number(firestorePort));
+      }
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   return { app, auth, firestore };
@@ -30,3 +51,5 @@ export {
   FirebaseProvider,
 } from './provider';
 export { FirebaseClientProvider } from './client-provider';
+export { useCollection } from './firestore/use-collection';
+export { useDoc } from './firestore/use-doc';
