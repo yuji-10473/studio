@@ -18,7 +18,6 @@ const model = googleAI.model('gemini-2.5-flash');
 const DynamicCharacterIntroductionInputSchema = z.object({
   characterName: z.string().describe('The name of the character to talk to.'),
   characterIntroduction: z.string().describe('The introduction of the character.'),
-  characterDescription: z.string().describe('The description of the character (AI persona).'),
   userMessage: z.string().describe('The message from the user.'),
 });
 export type DynamicCharacterIntroductionInput = z.infer<
@@ -51,7 +50,6 @@ const prompt = ai.definePrompt({
 # キャラクター設定
 名前: {{characterName}}
 紹介: {{characterIntroduction}}
-ペルソナ: {{characterDescription}}
 
 # ルール
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。

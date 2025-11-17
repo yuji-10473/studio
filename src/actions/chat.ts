@@ -12,32 +12,31 @@ export async function getAiResponse(
   character: Character,
   userMessage: string
 ): Promise<{ success: boolean; message: string }> {
-    const { firestore } = initializeFirebase();
-    const conversationsCollection = collection(firestore, 'conversations');
+  const { firestore } = initializeFirebase();
+  const conversationsCollection = collection(firestore, 'conversations_errors'); // Log to a different collection for debugging
+
+  const flowInput = {
+    characterName: character.name,
+    characterIntroduction: character.introduction,
+    userMessage: userMessage,
+  };
 
   const logData: any = {
-        characterName: character.name,
-        characterIntroduction: character.introduction,
-        characterDescription: character.description,
-        userMessage: userMessage,
-        timestamp: serverTimestamp(),
+    flow: 'dynamicCharacterIntroduction',
+    input: flowInput,
+    timestamp: serverTimestamp(),
   };
 
   try {
-    const response = await dynamicCharacterIntroduction({
-      characterName: character.name,
-      characterIntroduction: character.introduction,
-      characterDescription: character.description,
-      userMessage: userMessage,
-    });
+    const response = await dynamicCharacterIntroduction(flowInput);
+    
+    logData.output = response;
 
     const aiMessage = response.aiResponse;
 
     if (!aiMessage) {
         throw new Error('AIから空の応答が返されました。');
     }
-    
-    logData.response = aiMessage;
     
     addDoc(conversationsCollection, logData).catch(async (dbError) => {
         const permissionError = new FirestorePermissionError({
@@ -70,7 +69,6 @@ export async function getAiResponse(
         }, dbError);
         errorEmitter.emit('permission-error', permissionError);
     });
-
 
     return {
       success: false,
