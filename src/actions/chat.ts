@@ -24,6 +24,9 @@ export async function getAiResponse(
   character: Character,
   userMessage: string
 ): Promise<{ success: boolean; message: string }> {
+    const { firestore } = initializeFirebase();
+    const conversationsCollection = collection(firestore, 'conversations');
+
   if (!apiKey) {
     return {
       success: false,
@@ -49,6 +52,13 @@ export async function getAiResponse(
 
 ${character.name}: `;
 
+  const logData: any = {
+        characterName: character.name,
+        userMessage: userMessage,
+        prompt: prompt,
+        timestamp: serverTimestamp(),
+  };
+
   try {
 
     const response = await ai.generate({
@@ -61,10 +71,22 @@ ${character.name}: `;
     });
 
     const aiMessage = response.text;
+    logData.response = aiMessage;
+    logData.fullResponse = JSON.stringify(response, null, 2);
+
 
     if (!aiMessage) {
         throw new Error('AIから空の応答が返されました。');
     }
+
+    addDoc(conversationsCollection, logData).catch(async (dbError) => {
+        const permissionError = new FirestorePermissionError({
+            path: conversationsCollection.path,
+            operation: 'create',
+            requestResourceData: logData,
+        }, dbError);
+        errorEmitter.emit('permission-error', permissionError);
+    });
 
     return { success: true, message: aiMessage };
   } catch (error) {
@@ -78,30 +100,15 @@ ${character.name}: `;
         }
     }
 
-    const { firestore } = initializeFirebase();
-    const errorsCollection = collection(firestore, 'conversations_errors');
-    const errorData = {
-        characterName: character.name,
-        userMessage: userMessage,
-        prompt: prompt, // プロンプトを記録
-        error: errorMessage,
-        timestamp: serverTimestamp(),
-    };
-
-    // Also log errors to Firestore
-     addDoc(errorsCollection, errorData)
-        .catch(async (dbError) => {
-            const permissionError = new FirestorePermissionError({
-                path: errorsCollection.path,
-                operation: 'create',
-                requestResourceData: errorData,
-            }, dbError);
-            errorEmitter.emit('permission-error', permissionError);
-            // Log to console if logging to Firestore fails
-            console.error("Failed to log error to Firestore due to permissions:", permissionError);
-            console.error("Original AI Error:", error);
-        });
-
+    logData.error = errorMessage;
+    addDoc(conversationsCollection, logData).catch(async (dbError) => {
+        const permissionError = new FirestorePermissionError({
+            path: conversationsCollection.path,
+            operation: 'create',
+            requestResourceData: logData,
+        }, dbError);
+        errorEmitter.emit('permission-error', permissionError);
+    });
 
     return {
       success: false,
