@@ -183,21 +183,23 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const aiMessage: Message = { sender: charId, text: result.message, timestamp: serverTimestamp() };
       await addDoc(conversationHistoryRef, aiMessage);
       
+      const currentCharacterState = state.characterStates[charId];
+      const newMood = Math.min(100, (currentCharacterState?.mood || 50) + MOOD_INCREASE);
+      let newTok = state.tok;
+      let tokAwarded = currentCharacterState?.tokAwarded || false;
+      let shouldAwardTok = newMood >= VIRTUE_THRESHOLD && !tokAwarded;
+
+      if (shouldAwardTok) {
+        newTok += VIRTUE_AWARD;
+        tokAwarded = true;
+        toast({
+          title: "徳を獲得！",
+          description: `${activeCharacter.name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
+        });
+      }
+
       updateState(prev => {
         if (!prev.characterStates) return prev;
-        const currentCharacterState = prev.characterStates[charId];
-        const newMood = Math.min(100, (currentCharacterState?.mood || 50) + MOOD_INCREASE);
-        let newTok = prev.tok;
-        let tokAwarded = currentCharacterState?.tokAwarded || false;
-
-        if (newMood >= VIRTUE_THRESHOLD && !tokAwarded) {
-          newTok += VIRTUE_AWARD;
-          tokAwarded = true;
-          toast({
-            title: "徳を獲得！",
-            description: `${activeCharacter.name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
-          });
-        }
         
         return {
           ...prev,
@@ -205,7 +207,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           characterStates: {
             ...prev.characterStates,
             [charId]: {
-              ...currentCharacterState,
+              ...prev.characterStates[charId],
               mood: newMood,
               tokAwarded: tokAwarded,
             },
