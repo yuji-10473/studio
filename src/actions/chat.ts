@@ -23,28 +23,30 @@ export async function getAiResponse(
 
   const logData: any = {
     flow: 'dynamicCharacterIntroduction',
-    // We will populate the full input later
-    input: {},
+    request: {}, // To be populated later
     timestamp: serverTimestamp(),
   };
 
   try {
     const response = await dynamicCharacterIntroduction(flowInput);
     
-    // Now log the full input, including the rendered prompt
-    logData.input = {
+    // Populate the full request payload for logging
+    logData.request = {
         ...flowInput,
         renderedPrompt: response.prompt,
     };
-    logData.output = {
-        aiResponse: response.aiResponse
-    };
-
+    
     const aiMessage = response.aiResponse;
 
-    if (!aiMessage) {
+    if (!aiMessage && aiMessage !== "") { // Allow empty string but not undefined/null
         throw new Error('AIから空の応答が返されました。');
     }
+
+    // Log success with full response
+    logData.response = {
+        text: aiMessage,
+        fullResponse: JSON.parse(JSON.stringify(response.rawResponse))
+    };
     
     addDoc(conversationsCollection, logData).catch(async (dbError) => {
         const permissionError = new FirestorePermissionError({
@@ -66,6 +68,11 @@ export async function getAiResponse(
         if (error.cause) {
             errorMessage += `\nCause: ${JSON.stringify(error.cause, null, 2)}`;
         }
+    }
+    
+    // Populate request data even on error, if possible
+    if (!logData.request.renderedPrompt) {
+        logData.request = flowInput;
     }
 
     logData.error = errorMessage;

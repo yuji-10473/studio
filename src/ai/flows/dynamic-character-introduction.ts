@@ -29,6 +29,7 @@ export type DynamicCharacterIntroductionInput = z.infer<
 const DynamicCharacterIntroductionOutputSchema = z.object({
   aiResponse: z.string().describe('The AI character response.'),
   prompt: z.string().describe('The full prompt sent to the AI.'),
+  rawResponse: z.any().describe('The raw response from the AI model.'),
 });
 export type DynamicCharacterIntroductionOutput = z.infer<
   typeof DynamicCharacterIntroductionOutputSchema
@@ -84,6 +85,7 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     return {
       aiResponse,
       prompt: prompt,
+      rawResponse: response,
     };
   }
 );
