@@ -17,7 +17,9 @@ const model = googleAI.model('gemini-2.5-flash');
 
 const DynamicCharacterIntroductionInputSchema = z.object({
   characterName: z.string().describe('The name of the character to talk to.'),
-  characterIntroduction: z.string().describe('The introduction of the character.'),
+  characterIntroduction: z
+    .string()
+    .describe('The introduction of the character.'),
   userMessage: z.string().describe('The message from the user.'),
 });
 export type DynamicCharacterIntroductionInput = z.infer<
@@ -48,12 +50,7 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定に忠実に、自然な会話をしてください。
 - 回答は日本語で、簡潔かつ会話的にしてください。
-
-# ユーザーとの会話
-ユーザー: 「{{userMessage}}」
-
-{{characterName}}: `;
-
+`;
 
 const dynamicCharacterIntroductionFlow = ai.defineFlow(
   {
@@ -62,22 +59,26 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     outputSchema: DynamicCharacterIntroductionOutputSchema,
   },
   async input => {
-    const prompt = require('mustache').render(PROMPT_TEMPLATE, input);
-
+    const systemPrompt = require('mustache').render(PROMPT_TEMPLATE, input);
+    
     const response = await ai.generate({
-        model,
-        prompt: prompt,
-        config: {
-            temperature: 0.8,
-            maxOutputTokens: 200,
-        },
+      model,
+      prompt: {
+        system: systemPrompt,
+        user: input.userMessage,
+      },
+      config: {
+        temperature: 0.8,
+        maxOutputTokens: 200,
+      },
     });
 
     const aiResponse = response.text;
-    
-    return { 
-        aiResponse,
-        prompt,
+    const fullPromptForLog = `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${input.userMessage}`;
+
+    return {
+      aiResponse,
+      prompt: fullPromptForLog,
     };
   }
 );
