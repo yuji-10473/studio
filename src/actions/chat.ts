@@ -4,14 +4,15 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import type { Character } from '@/lib/types';
 
-async function generateText(prompt: string, apiKey: string) {
+async function generateText(prompt: string) {
   // We cannot use the global `ai` object from `@/ai/genkit` because
   // we need to provide the API key dynamically at runtime.
   // Instead, we initialize the Google AI plugin with the provided key.
+  const apiKey = process.env.GEMINI_API_KEY!;
   const ai = genkit({
     plugins: [googleAI({ apiKey })],
   });
-  const model = googleAI.model('gemini-2.5-flash');
+  const model = googleAI.model('gemini-1.5-flash');
   
   const response = await ai.generate({
     model,
@@ -29,9 +30,7 @@ export async function getAiResponse(
   character: Character,
   userMessage: string
 ): Promise<{ success: boolean; message: string }> {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
+  if (!process.env.GEMINI_API_KEY) {
     return {
       success: false,
       message: 'GEMINI_API_KEYが設定されていません。.envファイルを確認してください。',
@@ -59,7 +58,7 @@ export async function getAiResponse(
 ${character.name}: `;
 
   try {
-    const aiMessage = await generateText(prompt, apiKey);
+    const aiMessage = await generateText(prompt);
     return { success: true, message: aiMessage };
   } catch (error) {
     console.error('Error getting AI response:', error);
