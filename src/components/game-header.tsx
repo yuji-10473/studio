@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,7 @@ import { testFirestoreWrite } from '@/actions/firestore-debug';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { generateAndCreateCharacter } from '@/actions/character';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -38,6 +39,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
+  const [isGenerating, setIsGenerating] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -70,6 +72,21 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     setIsTestingFirestore(false);
   };
 
+  const handleGenerateCharacter = async () => {
+    setIsGenerating(true);
+    setErrorMessage('');
+    const result = await generateAndCreateCharacter("ファンタジー世界の住人");
+    if (result.success) {
+      toast({
+        title: "成功",
+        description: result.message,
+      });
+    } else {
+      setErrorMessage(result.message);
+    }
+    setIsGenerating(false);
+  }
+
   const handleLogout = async () => {
     if (!auth) return;
     await signOut(auth);
@@ -98,10 +115,16 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
           <div className="flex items-center gap-2">
             
             {isAdmin && (
-              <Button variant="outline" size="sm" onClick={onCreateCharacter}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                キャラクター作成
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={onCreateCharacter}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  キャラクター作成
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleGenerateCharacter} disabled={isGenerating}>
+                  {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  Geminiに作成させる
+                </Button>
+              </>
             )}
             
             <AlertDialog>
