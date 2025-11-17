@@ -39,7 +39,11 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
     if (response.text) {
         return { success: true, message: 'APIキーは有効です。' };
     } else {
-        return { success: false, message: 'AIから予期しない応答がありました。' };
+        const fullResponse = JSON.stringify(response, null, 2);
+        return { 
+            success: false, 
+            message: `AIからテキスト応答がありませんでした。完全な応答:\n${fullResponse}` 
+        };
     }
   } catch (error) {
     console.error('API Key Check Error:', error);
