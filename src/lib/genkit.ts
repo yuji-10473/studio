@@ -1,5 +1,3 @@
-'use client';
-
 import type { GenkitErrorCode, GenkitError } from 'genkit';
 
 export function isGenkitError(
