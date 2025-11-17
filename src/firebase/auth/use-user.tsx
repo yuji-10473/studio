@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { useAuth } from '../provider';
-import type { UserRole } from '@/lib/types';
+import { useAuth, useFirestore } from '../provider';
+import type { UserProfile, UserRole } from '@/lib/types';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export interface UserState {
     user: User | null;
@@ -15,27 +16,42 @@ export function useUser(): UserState {
   const [role, setRole] = useState<UserRole>('user');
   const [loading, setLoading] = useState(true);
   const auth = useAuth();
+  const firestore = useFirestore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
+    
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        try {
-            const tokenResult = await currentUser.getIdTokenResult();
-            const isAdmin = tokenResult.claims.isAdmin === true;
-            setRole(isAdmin ? 'admin' : 'user');
-        } catch (error) {
-            console.error('Error getting user token result:', error);
-            setRole('user');
-        }
-      } else {
-        setRole('user');
-      }
-      setLoading(false);
+      setLoading(false); // Set loading to false once auth state is determined
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [auth]);
+
+  useEffect(() => {
+    if (!firestore || !user) {
+        setRole('user');
+        return;
+    }
+
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const unsubscribeDoc = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const userData = docSnap.data() as UserProfile;
+            setRole(userData.isAdmin ? 'admin' : 'user');
+        } else {
+            setRole('user');
+        }
+    });
+
+    return () => unsubscribeDoc();
+
+  }, [firestore, user]);
+
 
   return { user, role, loading };
 }

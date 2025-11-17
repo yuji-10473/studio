@@ -54,6 +54,7 @@ export type UserProfile = {
   tok: number;
   gameDate: number;
   role: UserRole;
+  isAdmin?: boolean;
 }
 
 export type GameState = {

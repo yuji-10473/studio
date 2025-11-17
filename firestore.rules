@@ -16,18 +16,33 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // Allow authenticated users to read and write to the characters collection and ALL of its subcollections.
-    match /characters/{characterId}/{path=**} {
-        allow read, write: if request.auth != null;
+    // --- User Profile Rules ---
+    match /users/{userId} {
+      // Allow a user to read their own profile
+      allow read: if request.auth.uid == userId;
+      // Allow a user to create their own profile, but they cannot make themselves an admin
+      allow create: if request.auth.uid == userId && !request.resource.data.isAdmin;
+      // Allow a user to update their own profile, but NOT the isAdmin field
+      allow update: if request.auth.uid == userId && !("isAdmin" in request.resource.data);
     }
-
-    // Allow authenticated users to read and write top-level character documents.
+    
+    // --- Character Rules ---
+    // Allow authenticated users to read characters
     match /characters/{characterId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+    }
+    // Allow admins to create, update, and delete characters
+    match /characters/{characterId} {
+       allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // --- Conversation History Rules ---
+    // Allow authenticated users to read and write to conversation history subcollections
+    match /characters/{characterId}/conversationHistory/{messageId} {
+        allow read, write: if request.auth != null;
     }
     
     // By default, disallow all other reads and writes.
-    // As you build your app, you will need to add specific rules for other collections.
     match /{path=**} {
       allow read, write: if false;
     }
