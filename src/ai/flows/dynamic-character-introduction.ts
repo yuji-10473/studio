@@ -59,14 +59,17 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     outputSchema: DynamicCharacterIntroductionOutputSchema,
   },
   async input => {
-    const systemPrompt = require('mustache').render(PROMPT_TEMPLATE, input);
+    const systemPrompt = require('mustache').render(PROMPT_TEMPLATE, {
+        characterName: input.characterName,
+        characterIntroduction: input.characterIntroduction,
+    });
     
     const response = await ai.generate({
       model,
-      prompt: {
-        system: systemPrompt,
-        user: input.userMessage,
-      },
+      messages: [
+        {role: 'system', content: [{text: systemPrompt}]},
+        {role: 'user', content: [{text: input.userMessage}]},
+      ],
       config: {
         temperature: 0.8,
         maxOutputTokens: 200,
