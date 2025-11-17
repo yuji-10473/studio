@@ -1,9 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { useAuth, useFirestore } from '../provider';
+import { useAuth } from '../provider';
 import type { UserRole } from '@/lib/types';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { useDoc } from '../firestore/use-doc';
 
 export interface UserState {
@@ -18,6 +17,7 @@ export function useUser(): UserState {
   const [loading, setLoading] = useState(true);
   const auth = useAuth();
   
+  // Get the admin status based on the current user's UID.
   const { data: adminDoc, loading: adminLoading } = useDoc(user ? `/admins/${user.uid}` : null);
 
   useEffect(() => {
@@ -26,8 +26,10 @@ export function useUser(): UserState {
         return;
     }
     
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+    // Subscribe to auth state changes.
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      // If there's no user, we are done loading auth state.
       if (!currentUser) {
         setLoading(false);
       }
@@ -37,23 +39,18 @@ export function useUser(): UserState {
   }, [auth]);
 
   useEffect(() => {
-    if (loading) return; // Wait for auth state to be determined
-
-    if (!user) {
-        setRole('user');
-        return;
-    }
-    
-    if (adminLoading) return; // Wait for admin doc to load
-
-    if (adminDoc) {
-        setRole('admin');
+    // If we have a user, loading depends on whether we have checked for admin status.
+    if (user) {
+      if (!adminLoading) { // Admin check is complete
+        setRole(adminDoc ? 'admin' : 'user');
+        setLoading(false); // Final loading state is now false.
+      }
+      // If admin check is still loading, we wait. `loading` remains true.
     } else {
+        // If there is no user, role is 'user' and loading is already handled by onAuthStateChanged.
         setRole('user');
     }
-    setLoading(false);
-
-  }, [user, adminDoc, adminLoading, loading]);
+  }, [user, adminDoc, adminLoading]);
 
 
   return { user, role, loading };
