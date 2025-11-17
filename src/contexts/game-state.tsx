@@ -1,9 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { CHARACTERS, Character, CharacterId, GameContextType, GameState, Message, CharacterState } from '@/lib/types';
+import { Character, CharacterId, GameContextType, GameState, Message, CharacterState } from '@/lib/types';
 import { getAiResponse } from '@/actions/chat';
 import { useToast } from '@/hooks/use-toast';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useUser } from '@/firebase/auth/use-user';
+import type { User } from 'firebase/auth';
 
 const VIRTUE_THRESHOLD = 80;
 const VIRTUE_AWARD = 10;
@@ -12,70 +15,103 @@ const STORAGE_KEY = 'townfolk-tales-gamestate';
 
 const GameStateContext = createContext<GameContextType | undefined>(undefined);
 
-const createInitialState = (): GameState => {
-  const characterStates = Object.keys(CHARACTERS).reduce((acc, key) => {
-    acc[key as CharacterId] = {
-      mood: 50,
-      conversationHistory: [],
-      tokAwarded: false,
-    };
+const createInitialState = (characters: Character[], user: User | null): GameState => {
+  const characterStates = characters.reduce((acc, char) => {
+    if (char.id) {
+      acc[char.id] = {
+        mood: 50,
+        conversationHistory: [],
+        tokAwarded: false,
+      };
+    }
     return acc;
   }, {} as Record<CharacterId, CharacterState>);
 
   return {
-    characters: { ...CHARACTERS },
+    characters,
     characterStates,
     tok: 0,
     gameDate: 1,
     activeConversation: null,
     isAiResponding: false,
     errorMessage: '',
+    user: user,
   };
 };
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<GameState>(createInitialState());
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { user, loading: userLoading } = useUser();
+  const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>('characters');
+  const [state, setState] = useState<GameState | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    try {
-      const savedStateJSON = localStorage.getItem(STORAGE_KEY);
-      if (savedStateJSON) {
-        const savedState = JSON.parse(savedStateJSON);
-        const updatedCharacters = { ...CHARACTERS };
-        if (savedState.characters) {
-            for (const charId in updatedCharacters) {
-                if (savedState.characters[charId]) {
-                    updatedCharacters[charId as CharacterId].description = savedState.characters[charId].description;
-                }
-            }
-        }
-        
-        setState({ ...createInitialState(), ...savedState, characters: updatedCharacters });
-      } else {
-        setState(createInitialState());
+    if (userLoading || charactersLoading || !charactersFromDb) return;
+    
+    setState(prevState => {
+      // If state is already initialized, just update characters and user
+      if (prevState) {
+        const characterStates = charactersFromDb.reduce((acc, char) => {
+          if (char.id) {
+            // Preserve existing state if available, otherwise initialize
+            acc[char.id] = prevState.characterStates[char.id] || {
+              mood: 50,
+              conversationHistory: [],
+              tokAwarded: false,
+            };
+          }
+          return acc;
+        }, {} as Record<CharacterId, CharacterState>);
+
+        return {
+          ...prevState,
+          user,
+          characters: charactersFromDb,
+          characterStates,
+        };
       }
-    } catch (error) {
-      console.error("Failed to load game state from localStorage", error);
-      setState(createInitialState());
-    }
-    setIsLoaded(true);
-  }, []);
+
+      // Initialize state for the first time
+      const initialState = createInitialState(charactersFromDb, user);
+      try {
+        const savedStateJSON = localStorage.getItem(STORAGE_KEY);
+        if (savedStateJSON) {
+          const savedState = JSON.parse(savedStateJSON);
+          return {
+            ...initialState,
+            tok: savedState.tok ?? 0,
+            gameDate: savedState.gameDate ?? 1,
+            // Descriptions are now from DB, so we don't load them from local storage.
+          };
+        }
+      } catch (error) {
+        console.error("Failed to load game state from localStorage", error);
+      }
+      return initialState;
+    });
+
+  }, [user, userLoading, charactersFromDb, charactersLoading]);
+
 
   useEffect(() => {
-    if (isLoaded) {
+    if (state && !userLoading && !charactersLoading) {
       try {
-        const stateToSave = { ...state, activeConversation: null, isAiResponding: false, errorMessage: '' };
+        const stateToSave = { 
+            tok: state.tok, 
+            gameDate: state.gameDate 
+        };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
       } catch (error) {
         console.error("Failed to save game state to localStorage", error);
       }
     }
-  }, [state, isLoaded]);
+  }, [state, userLoading, charactersLoading]);
   
   const updateState = useCallback((updater: (prevState: GameState) => GameState) => {
-    setState(updater);
+    setState(prevState => {
+        if (!prevState) return null;
+        return updater(prevState);
+    });
   }, []);
 
   const setErrorMessage = useCallback((message: string) => {
@@ -92,13 +128,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState]);
 
   const sendMessage = useCallback(async (text: string) => {
+    if (!state || !state.activeConversation || !text.trim() || state.isAiResponding) return;
+
     if (!process.env.GEMINI_API_KEY) {
       setErrorMessage(
         'Gemini APIキーが設定されていません。.envファイルに GEMINI_API_KEY として設定してください。'
       );
       return;
     }
-    if (!state.activeConversation || !text.trim() || state.isAiResponding) return;
 
     setErrorMessage('');
     const charId = state.activeConversation;
@@ -111,28 +148,35 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         ...prev.characterStates,
         [charId]: {
           ...prev.characterStates[charId],
-          conversationHistory: [...prev.characterStates[charId].conversationHistory, userMessage],
+          conversationHistory: [...(prev.characterStates[charId]?.conversationHistory || []), userMessage],
         },
       },
     }));
 
-    const result = await getAiResponse(state.characters[charId], text);
+    const activeCharacter = state.characters.find(c => c.id === charId);
+    if (!activeCharacter) {
+        setErrorMessage("アクティブなキャラクターが見つかりません。");
+        updateState(prev => ({...prev, isAiResponding: false}));
+        return;
+    }
+
+    const result = await getAiResponse(activeCharacter, text);
     
     if (result.success) {
       const aiMessage: Message = { sender: charId, text: result.message, id: Date.now() + 1 };
       
       updateState(prev => {
         const currentCharacterState = prev.characterStates[charId];
-        const newMood = Math.min(100, currentCharacterState.mood + MOOD_INCREASE);
+        const newMood = Math.min(100, (currentCharacterState?.mood || 50) + MOOD_INCREASE);
         let newTok = prev.tok;
-        let tokAwarded = currentCharacterState.tokAwarded;
+        let tokAwarded = currentCharacterState?.tokAwarded || false;
 
         if (newMood >= VIRTUE_THRESHOLD && !tokAwarded) {
           newTok += VIRTUE_AWARD;
           tokAwarded = true;
           toast({
             title: "徳を獲得！",
-            description: `${prev.characters[charId].name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
+            description: `${activeCharacter.name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
           });
         }
         
@@ -146,7 +190,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
               ...currentCharacterState,
               mood: newMood,
               tokAwarded: tokAwarded,
-              conversationHistory: [...currentCharacterState.conversationHistory, aiMessage],
+              conversationHistory: [...(currentCharacterState?.conversationHistory || []), aiMessage],
             },
           },
         };
@@ -160,25 +204,22 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           ...prev.characterStates,
           [charId]: {
             ...prev.characterStates[charId],
-            // Remove the user message that failed to get a response
             conversationHistory: prev.characterStates[charId].conversationHistory.slice(0, -1),
           },
         },
       }));
     }
-  }, [state.activeConversation, state.isAiResponding, state.characters, updateState, toast, setErrorMessage]);
+  }, [state, updateState, toast, setErrorMessage]);
 
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
+    // This now only needs to update firestore, the useCollection hook will update the state
+    // For now, we will update the local state for responsiveness
     updateState(prev => {
-      const newCharacters = {
-        ...prev.characters,
-        [characterId]: {
-          ...prev.characters[characterId],
-          description,
-        },
-      };
+      const newCharacters = prev.characters.map(c => 
+        c.id === characterId ? { ...c, description } : c
+      );
       
-      toast({ title: "ペルソナ更新", description: `${newCharacters[characterId].name}のペルソナを更新しました。`});
+      toast({ title: "ペルソナ更新", description: `ペルソナを更新しました。Firestoreへの保存は未実装です。`});
 
       return {
         ...prev,
@@ -189,7 +230,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   const stayAtInn = useCallback(() => {
     updateState(prev => {
-      const resetCharacterStates = Object.keys(prev.characters).reduce((acc, key) => {
+      const resetCharacterStates = Object.keys(prev.characterStates).reduce((acc, key) => {
         acc[key as CharacterId] = { mood: 50, conversationHistory: [], tokAwarded: false };
         return acc;
       }, {} as Record<CharacterId, CharacterState>);
@@ -204,6 +245,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     });
   }, [updateState, toast]);
 
+  if (!state) {
+    return null; // Or a loading spinner
+  }
+  
   const contextValue = {
     ...state,
     startConversation,
@@ -213,10 +258,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     stayAtInn,
     setErrorMessage,
   };
-  
-  if (!isLoaded) {
-    return null;
-  }
 
   return (
     <GameStateContext.Provider value={contextValue}>

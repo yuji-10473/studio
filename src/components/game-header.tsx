@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,9 +18,16 @@ import {
 import { checkApiKey } from '@/actions/debug';
 import { testFirestoreWrite } from '@/actions/firestore-debug';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
-export default function GameHeader() {
-  const { tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
+type GameHeaderProps = {
+  onCreateCharacter: () => void;
+};
+
+export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
+  const { user, tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
+  const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
   const { toast } = useToast();
@@ -55,6 +62,11 @@ export default function GameHeader() {
     setIsTestingFirestore(false);
   };
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast({ title: 'ログアウトしました。' });
+  };
+
   return (
     <header className="bg-card border-b sticky top-0 z-10">
       <div className="container mx-auto flex items-center justify-between p-4">
@@ -73,22 +85,12 @@ export default function GameHeader() {
             <span className="font-bold text-lg">{gameDate}日目</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleTestKey} disabled={isTestingKey}>
-              {isTestingKey ? (
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <KeyRound className="mr-2 h-4 w-4" />
-              )}
-              APIキーをテスト
+            
+            <Button variant="outline" size="sm" onClick={onCreateCharacter}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              キャラクター作成
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
-              {isTestingFirestore ? (
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Database className="mr-2 h-4 w-4" />
-              )}
-              Firestore書き込みテスト
-            </Button>
+            
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -109,6 +111,13 @@ export default function GameHeader() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            {user && (
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                ログアウト
+              </Button>
+            )}
           </div>
         </div>
       </div>

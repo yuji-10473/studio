@@ -1,15 +1,9 @@
 import type {ImagePlaceholder} from './placeholder-images';
+import type { User } from 'firebase/auth';
 
-export type CharacterId = keyof typeof CHARACTERS;
-
-export type Character = {
-  name: string;
-  introduction: string;
-  description: string;
-  imageId: ImagePlaceholder['id'];
-};
-
-export const CHARACTERS = {
+// This is now used only as a fallback or for initial data structure reference.
+// The primary source of truth is Firestore.
+export const CHARACTERS_DATA = {
   elara: {
     name: 'エララ',
     introduction: '村の賢いパン屋。いつも焼きたてのパンの香りがする。',
@@ -28,7 +22,17 @@ export const CHARACTERS = {
     description: 'あなたは森の奥深くで暮らす魔法使い、セラフィナです。物静かで神秘的な雰囲気をまとっていますが、好奇心は旺盛です。自然と魔法に関する知識が豊富で、時折、哲学的な問いを投げかけることがあります。人間社会には少し疎いです。',
     imageId: 'seraphina-image',
   }
-} as const satisfies Record<string, Character>;
+} as const;
+
+export type CharacterId = string;
+
+export type Character = {
+  id?: CharacterId; // Document ID from Firestore
+  name: string;
+  introduction: string;
+  description: string;
+  imageId: ImagePlaceholder['id'];
+};
 
 export type Message = {
   sender: 'user' | CharacterId;
@@ -43,13 +47,14 @@ export type CharacterState = {
 };
 
 export type GameState = {
-  characters: Record<CharacterId, Character>;
+  characters: Character[];
   characterStates: Record<CharacterId, CharacterState>;
   tok: number;
   gameDate: number;
   activeConversation: CharacterId | null;
   isAiResponding: boolean;
   errorMessage: string;
+  user: User | null;
 };
 
 export type GameContextType = GameState & {
