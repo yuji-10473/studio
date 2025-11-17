@@ -63,6 +63,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechPingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Effect for creating user profile on first login
   useEffect(() => {
@@ -145,70 +146,91 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState]);
 
   const cancelSpeech = useCallback(() => {
+    if (speechPingIntervalRef.current) {
+        clearInterval(speechPingIntervalRef.current);
+        speechPingIntervalRef.current = null;
+    }
     if (window.speechSynthesis && window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
-      if (utteranceRef.current) {
-        utteranceRef.current = null;
-      }
+    }
+    if (utteranceRef.current) {
+      utteranceRef.current = null;
+    }
+    // Prevent a stuck "isSpeaking" state if speech is cancelled mid-way
+    if (state.isSpeaking) {
       updateState(prev => ({ ...prev, isSpeaking: false }));
     }
-  }, [updateState]);
+  }, [updateState, state.isSpeaking]);
 
   const speak = useCallback((text: string, onEnd?: () => void) => {
-      if (!window.speechSynthesis) {
-          console.warn("Web Speech API is not supported by this browser.");
-          onEnd?.();
-          return;
-      }
-      
-      cancelSpeech();
+    if (!window.speechSynthesis) {
+        console.warn("Web Speech API is not supported by this browser.");
+        onEnd?.();
+        return;
+    }
+    
+    cancelSpeech();
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
 
-      utterance.onstart = () => updateState(prev => ({ ...prev, isSpeaking: true }));
-      utterance.onend = () => {
-          updateState(prev => ({ ...prev, isSpeaking: false }));
-          utteranceRef.current = null;
-          onEnd?.();
-      };
-      utterance.onerror = (event) => {
-          console.error("SpeechSynthesisUtterance.onerror", event);
-          updateState(prev => ({ ...prev, isSpeaking: false }));
-          utteranceRef.current = null;
-          onEnd?.();
-      };
+    const handleEnd = () => {
+        if (speechPingIntervalRef.current) {
+            clearInterval(speechPingIntervalRef.current);
+            speechPingIntervalRef.current = null;
+        }
+        updateState(prev => ({ ...prev, isSpeaking: false }));
+        utteranceRef.current = null;
+        onEnd?.();
+    };
 
-      utteranceRef.current = utterance;
+    utterance.onstart = () => {
+        updateState(prev => ({ ...prev, isSpeaking: true }));
+        speechPingIntervalRef.current = setInterval(() => {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.pause();
+                window.speechSynthesis.resume();
+            }
+        }, 15000);
+    };
+    
+    utterance.onend = handleEnd;
+    utterance.onerror = (event) => {
+        console.error("SpeechSynthesisUtterance.onerror", event);
+        handleEnd();
+    };
 
-      const setVoice = () => {
-          const voices = window.speechSynthesis.getVoices();
-          const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
-          if (japaneseVoice) {
-              utterance.voice = japaneseVoice;
-          }
-          // The cancel() call is a workaround for a common bug where speak() fails on long text.
-          window.speechSynthesis.cancel();
-          window.speechSynthesis.speak(utterance);
-      };
+    utteranceRef.current = utterance;
 
-      // The voices may not be loaded immediately.
-      if (window.speechSynthesis.getVoices().length === 0) {
-          window.speechSynthesis.onvoiceschanged = setVoice;
-      } else {
-          setVoice();
-      }
+    // Use onvoiceschanged to ensure voices are loaded
+    if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            const voices = window.speechSynthesis.getVoices();
+            const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
+            if (japaneseVoice) {
+                utterance.voice = japaneseVoice;
+            }
+            window.speechSynthesis.speak(utterance);
+        };
+    } else {
+        const voices = window.speechSynthesis.getVoices();
+        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
+        if (japaneseVoice) {
+            utterance.voice = japaneseVoice;
+        }
+        window.speechSynthesis.speak(utterance);
+    }
   }, [updateState, cancelSpeech]);
 
   const startConversation = useCallback((characterId: CharacterId) => {
-    setErrorMessage('');
     updateState(prev => ({ ...prev, activeConversation: characterId }));
-  }, [updateState, setErrorMessage]);
+  }, [updateState]);
 
   const endConversation = useCallback(() => {
     cancelSpeech();
     updateState(prev => ({ ...prev, activeConversation: null }));
   }, [updateState, cancelSpeech]);
+
 
   const sendMessage = useCallback(async (text: string) => {
     if (!state || !state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user) return;
@@ -260,6 +282,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     const result = await getAiResponse(activeCharacter, text, plainHistory.slice(-10));
     
+    updateState(prev => ({ ...prev, isAiResponding: false }));
+
     if (result.success) {
       const aiMessage: Message = { 
           sender: charId, 
@@ -293,16 +317,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           tokAwarded: shouldAwardTok ? true : currentCharacterState.tokAwarded
       }, { merge: true });
 
-      speak(result.message, () => {
-        updateState(prev => ({...prev, isAiResponding: false}));
-      });
+      speak(result.message);
       // State will be updated by the Firestore listener, no need to setState here for tok/mood
     } else {
       setErrorMessage(result.message);
-      updateState(prev => ({
-        ...prev,
-        isAiResponding: false,
-      }));
     }
   }, [state, updateState, toast, setErrorMessage, firestore, user, speak]);
 
