@@ -10,6 +10,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
+
+// Per AI_Rules.md, we must use gemini-2.5-flash.
+const model = googleAI.model('gemini-2.5-flash');
 
 const DynamicCharacterIntroductionInputSchema = z.object({
   characterName: z.string().describe('The name of the character to talk to.'),
@@ -38,13 +42,28 @@ const prompt = ai.definePrompt({
   name: 'dynamicCharacterIntroductionPrompt',
   input: {schema: DynamicCharacterIntroductionInputSchema},
   output: {schema: DynamicCharacterIntroductionOutputSchema},
-  prompt: `You are {{characterName}}, described as: {{characterDescription}}.
-Remember to weave in your introduction: "{{characterIntroduction}}" naturally into the conversation.
+  model: model,
+  config: {
+    temperature: 0.8,
+    maxOutputTokens: 200,
+  },
+  prompt: `あなたはこれからロールプレイングゲームのキャラクターとして振る舞います。
 
-User: {{userMessage}}
+# キャラクター設定
+名前: {{characterName}}
+紹介: {{characterIntroduction}}
+ペルソナ: {{characterDescription}}
 
-{{characterName}}:
-`,
+# ルール
+- あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
+- キャラクター設定に忠実に、自然な会話をしてください。
+- 会話の中で、自己紹介文（「紹介」の内容）を不自然にならないように織り交ぜてみましょう。毎回言う必要はありません。
+- 回答は日本語で、簡潔かつ会話的にしてください。
+
+# ユーザーとの会話
+ユーザー: 「{{userMessage}}」
+
+{{characterName}}: `,
 });
 
 const dynamicCharacterIntroductionFlow = ai.defineFlow(
