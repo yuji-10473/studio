@@ -72,10 +72,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             if (!docSnap.exists()) {
                 const newUserProfile: UserProfile = {
                     email: user.email || '',
-                    displayName: user.displayName || 'New User',
+                    displayName: user.displayName || user.email?.split('@')[0] || 'New User',
                     tok: 0,
                     gameDate: 1,
-                    role: 'user',
                 };
                 setDoc(userDocRef, newUserProfile);
             }
