@@ -37,7 +37,7 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
           <CardDescription className="mt-1">{character.introduction}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-4 pt-0">
+      <CardContent className="flex-grow p-4 py-2">
         <div className="space-y-2">
             <Label htmlFor={`mood-${character.name}`} className="text-sm font-medium">機嫌</Label>
             <Progress id={`mood-${character.name}`} value={characterState.mood} className="w-full" />
