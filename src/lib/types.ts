@@ -47,14 +47,15 @@ export type CharacterState = {
 };
 
 export type GameState = {
-  characters: Character[];
-  characterStates: Record<CharacterId, CharacterState>;
+  characters: Character[] | null;
+  characterStates: Record<CharacterId, CharacterState> | null;
   tok: number;
   gameDate: number;
   activeConversation: CharacterId | null;
   isAiResponding: boolean;
   errorMessage: string;
   user: User | null;
+  loading: boolean;
 };
 
 export type GameContextType = GameState & {

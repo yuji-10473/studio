@@ -7,7 +7,7 @@ import CharacterGrid from '@/components/character-grid';
 import ConversationModal from '@/components/conversation-modal';
 import DebugError from '@/components/debug-error';
 import CreateCharacterModal from '@/components/create-character-modal';
-import { Button } from '@/components/ui/button';
+import { LoaderCircle } from 'lucide-react';
 
 function TownfolkTalesApp() {
   const { 
@@ -17,12 +17,21 @@ function TownfolkTalesApp() {
     characterStates, 
     endConversation,
     errorMessage,
-    setErrorMessage
+    setErrorMessage,
+    loading: gameStateLoading, // Renamed from 'loading' in useUser to avoid conflict
   } = useGameState();
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
 
-  const activeCharacter = activeConversation && characters.find(c => c.id === activeConversation);
-  const activeCharacterState = activeConversation ? characterStates[activeConversation] : null;
+  const activeCharacter = activeConversation && characters && characters.find(c => c.id === activeConversation);
+  const activeCharacterState = activeConversation && characterStates ? characterStates[activeConversation] : null;
+
+  if (gameStateLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoaderCircle className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
