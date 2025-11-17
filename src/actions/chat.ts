@@ -14,8 +14,9 @@ async function generateText(prompt: string) {
   const ai = genkit({
     plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
   });
+  // Per AI_Rules.md, we must use gemini-2.5-flash.
   const model = googleAI.model('gemini-2.5-flash');
-  
+
   const response = await ai.generate({
     model,
     prompt,
