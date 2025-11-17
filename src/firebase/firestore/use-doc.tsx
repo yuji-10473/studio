@@ -9,6 +9,8 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
+import { errorEmitter } from '../error-emitter';
+import { FirestorePermissionError } from '../errors';
 
 export function useDoc<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
@@ -22,7 +24,7 @@ export function useDoc<T>(path: string | null) {
   }, [path, firestore]);
 
   useEffect(() => {
-    if (!docRefMemo) {
+    if (!docRefMemo || !path) { // also check for path
       setLoading(false);
       setData(null);
       return;
@@ -41,14 +43,21 @@ export function useDoc<T>(path: string | null) {
         setLoading(false);
       },
       (err: FirestoreError) => {
-        console.error(err);
+        // Create and emit a detailed permission error
+        const permissionError = new FirestorePermissionError({
+          path: path, // Use the path passed to the hook
+          operation: 'get',
+        }, err);
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Also set the local error state for the component
         setError(err);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [docRefMemo]);
+  }, [docRefMemo, path]); // Add path to dependencies
 
   return { data, loading, error };
 }
