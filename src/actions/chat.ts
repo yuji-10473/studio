@@ -37,15 +37,12 @@ export async function getAiResponse(
     };
     
     const aiMessage = response.aiResponse;
-
-    if (!aiMessage && aiMessage !== "") { // Allow empty string but not undefined/null
-        throw new Error('AIから空の応答が返されました。');
-    }
+    const rawResponse = response.rawResponse;
 
     // Log success with full response
     logData.response = {
         text: aiMessage,
-        fullResponse: JSON.parse(JSON.stringify(response.rawResponse))
+        fullResponse: JSON.parse(JSON.stringify(rawResponse))
     };
     
     addDoc(conversationsCollection, logData).catch(async (dbError) => {
@@ -56,6 +53,15 @@ export async function getAiResponse(
         }, dbError);
         errorEmitter.emit('permission-error', permissionError);
     });
+
+    if (!aiMessage && aiMessage !== "") { // Handle cases where the AI returns an empty string
+        const finishReason = rawResponse?.candidates?.[0]?.finishReason;
+        if (finishReason === 'MAX_TOKENS' || finishReason === 'LENGTH') {
+            throw new Error('AIの応答が長すぎるため、途中で中断されました。入力する文字数を減らして、もう一度試してください。');
+        }
+        throw new Error('AIから空の応答が返されました。');
+    }
+
 
     return { success: true, message: aiMessage };
 
