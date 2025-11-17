@@ -2,7 +2,7 @@
 
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, KeyRound, Bed } from 'lucide-react';
+import { Heart, CalendarDays, Bed } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function GameHeader() {
-  const { tok, gameDate, stayAtInn, openApiKeyDialog } = useGameState();
+  const { tok, gameDate, stayAtInn } = useGameState();
 
   return (
     <header className="bg-card border-b sticky top-0 z-10">
@@ -56,10 +56,6 @@ export default function GameHeader() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-
-            <Button variant="ghost" size="icon" onClick={openApiKeyDialog} aria-label="APIキー設定">
-              <KeyRound />
-            </Button>
           </div>
         </div>
       </div>

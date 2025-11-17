@@ -28,8 +28,6 @@ const createInitialState = (): GameState => {
     tok: 0,
     gameDate: 1,
     activeConversation: null,
-    isApiKeyDialogOpen: false,
-    apiKey: null,
     isAiResponding: false,
   };
 };
@@ -107,7 +105,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       },
     }));
 
-    const result = await getAiResponse(state.characters[charId], text, state.apiKey || '');
+    const result = await getAiResponse(state.characters[charId], text);
     
     if (result.success) {
       const aiMessage: Message = { sender: charId, text: result.message, id: Date.now() + 1 };
@@ -160,7 +158,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         },
       }));
     }
-  }, [state.activeConversation, state.apiKey, state.isAiResponding, state.characters, updateState, toast]);
+  }, [state.activeConversation, state.isAiResponding, state.characters, updateState, toast]);
 
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
     updateState(prev => ({
@@ -192,20 +190,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
   }, [updateState, toast]);
 
-  const setApiKey = useCallback((key: string) => {
-    updateState(prev => ({ ...prev, apiKey: key, isApiKeyDialogOpen: false }));
-    toast({ title: "APIキー設定", description: "APIキーを保存しました。"});
-  }, [updateState, toast]);
-  
-  const openApiKeyDialog = useCallback(() => {
-    updateState(prev => ({...prev, isApiKeyDialogOpen: true}));
-  }, [updateState]);
-
-  const closeApiKeyDialog = useCallback(() => {
-    updateState(prev => ({...prev, isApiKeyDialogOpen: false}));
-  }, [updateState]);
-
-
   const contextValue = {
     ...state,
     startConversation,
@@ -213,9 +197,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     sendMessage,
     updateCharacterPersona,
     stayAtInn,
-    setApiKey,
-    openApiKeyDialog,
-    closeApiKeyDialog,
   };
   
   if (!isLoaded) {

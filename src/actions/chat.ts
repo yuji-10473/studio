@@ -26,13 +26,14 @@ async function generateText(prompt: string, apiKey: string) {
 
 export async function getAiResponse(
   character: Character,
-  userMessage: string,
-  apiKey: string
+  userMessage: string
 ): Promise<{ success: boolean; message: string }> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
   if (!apiKey) {
     return {
       success: false,
-      message: 'APIキーが設定されていません。右上の鍵アイコンから設定してください。',
+      message: 'GEMINI_API_KEYが設定されていません。.envファイルを確認してください。',
     };
   }
 

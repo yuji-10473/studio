@@ -4,7 +4,6 @@ import { GameStateProvider, useGameState } from '@/contexts/game-state';
 import GameHeader from '@/components/game-header';
 import CharacterGrid from '@/components/character-grid';
 import ConversationModal from '@/components/conversation-modal';
-import ApiKeyDialog from '@/components/api-key-dialog';
 
 function TownfolkTalesApp() {
   const { activeConversation, characters, characterStates, endConversation } = useGameState();
@@ -27,7 +26,6 @@ function TownfolkTalesApp() {
           characterId={activeConversation}
         />
       )}
-      <ApiKeyDialog />
     </div>
   );
 }

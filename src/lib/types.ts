@@ -47,9 +47,7 @@ export type GameState = {
   characterStates: Record<CharacterId, CharacterState>;
   tok: number;
   gameDate: number;
-  isApiKeyDialogOpen: boolean;
   activeConversation: CharacterId | null;
-  apiKey: string | null;
   isAiResponding: boolean;
 };
 
@@ -59,7 +57,4 @@ export type GameContextType = GameState & {
   sendMessage: (text: string) => void;
   updateCharacterPersona: (characterId: CharacterId, description: string) => void;
   stayAtInn: () => void;
-  setApiKey: (key: string) => void;
-  openApiKeyDialog: () => void;
-  closeApiKeyDialog: () => void;
 };
