@@ -10,8 +10,11 @@ import {
   FirestoreError,
   QuerySnapshot,
   orderBy,
+  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
+import { errorEmitter } from '../error-emitter';
+import { FirestorePermissionError } from '../errors';
 
 interface UseCollectionOptions {
   sort?: string;
@@ -47,7 +50,7 @@ export function useCollection<T>(
     const unsubscribe = onSnapshot(
       queryMemo,
       (snapshot: QuerySnapshot<DocumentData>) => {
-        const docs = snapshot.docs.map((doc) => ({
+        const docs = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
           ...doc.data(),
           id: doc.id,
         })) as T[];
@@ -55,14 +58,18 @@ export function useCollection<T>(
         setLoading(false);
       },
       (err: FirestoreError) => {
-        console.error(err);
+        const permissionError = new FirestorePermissionError({
+            path: path,
+            operation: 'list',
+        }, err);
+        errorEmitter.emit('permission-error', permissionError);
         setError(err);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [queryMemo]);
+  }, [queryMemo, path]);
 
   return { data, loading, error };
 }

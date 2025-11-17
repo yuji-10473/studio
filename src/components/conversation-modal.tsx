@@ -32,8 +32,15 @@ type ConversationModalProps = {
 
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { setErrorMessage } = useGameState();
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
-  const { data: conversationHistory, loading } = useCollection<Message>(`characters/${characterId}/conversationHistory`, { sort: 'timestamp', sortDirection: 'asc' });
+  const { data: conversationHistory, loading, error } = useCollection<Message>(`characters/${characterId}/conversationHistory`, { sort: 'timestamp', sortDirection: 'asc' });
+
+  useEffect(() => {
+    if (error) {
+      setErrorMessage(error.message);
+    }
+  }, [error, setErrorMessage]);
 
   const sortedHistory = useMemo(() => {
     if (!conversationHistory) return [];
