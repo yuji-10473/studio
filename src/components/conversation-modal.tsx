@@ -21,8 +21,6 @@ import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase';
-import { where } from 'firebase/firestore';
-
 
 type ConversationModalProps = {
   isOpen: boolean;
@@ -39,12 +37,13 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
   
   const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
+  // The query is simplified to avoid needing a composite index.
+  // We will filter by characterId on the client side.
   const { data: conversationHistory, loading, error } = useCollection<Message>(
     conversationPath, 
     { 
       sort: 'timestamp', 
       sortDirection: 'asc',
-      // filter: ['characterId', '==', characterId] // Temporarily disable filter for debugging
     }
   );
 
@@ -55,10 +54,9 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     }
   }, [error, setErrorMessage]);
 
+  // Client-side filtering
   const sortedHistory = useMemo(() => {
     if (!conversationHistory) return [];
-    // The query now sorts by timestamp, so we can just use the data as is.
-    // When filter is re-enabled, we might need to filter client-side if the query is the issue.
     return conversationHistory.filter(msg => msg.characterId === characterId);
   }, [conversationHistory, characterId]);
 

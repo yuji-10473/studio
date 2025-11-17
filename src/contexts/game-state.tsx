@@ -175,18 +175,20 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateState(prev => ({ ...prev, isAiResponding: true }));
 
     
+    // Simplified query to avoid composite index requirement
     const historyQuery = query(
-        conversationHistoryRef, 
-        where('characterId', '==', charId),
+        conversationHistoryRef,
         orderBy('timestamp', 'desc'), 
-        limit(10)
+        limit(20) // Fetch a bit more to have enough history for the active character
     );
     const historySnapshot = await getDocs(historyQuery);
     
+    // Filter for the correct character client-side
     const plainHistory = historySnapshot.docs.map(doc => {
       const data = doc.data();
       return { ...data, timestamp: (data.timestamp as Timestamp).toDate().toISOString() };
-    }).reverse() as Message[];
+    }).filter(msg => msg.characterId === charId).reverse() as Message[];
+
 
     await addDoc(conversationHistoryRef, userMessage);
 
@@ -197,7 +199,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const result = await getAiResponse(activeCharacter, text, plainHistory);
+    const result = await getAiResponse(activeCharacter, text, plainHistory.slice(-10));
     
     if (result.success) {
       const aiMessage: Message = { 
