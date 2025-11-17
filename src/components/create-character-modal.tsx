@@ -14,12 +14,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCharacter } from '@/actions/character';
 import { LoaderCircle } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { useGameState } from '@/contexts/game-state';
 
 const characterSchema = z.object({
   name: z.string().min(1, { message: '名前は必須です。' }).max(20, { message: '名前は20文字以内です。'}),
@@ -36,6 +36,7 @@ type CreateCharacterModalProps = {
 
 export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacterModalProps) {
   const { toast } = useToast();
+  const { setErrorMessage } = useGameState();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CharacterFormValues>({
@@ -55,6 +56,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
 
   const onSubmit = async (data: CharacterFormValues) => {
     setIsSubmitting(true);
+    setErrorMessage('');
     const result = await createCharacter(data);
     if (result.success) {
       toast({
@@ -63,11 +65,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
       });
       handleClose();
     } else {
-      toast({
-        variant: 'destructive',
-        title: 'エラー',
-        description: result.message,
-      });
+      setErrorMessage(result.message);
     }
     setIsSubmitting(false);
   };
