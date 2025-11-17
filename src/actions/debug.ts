@@ -45,20 +45,6 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
     console.error('API Key Check Error:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (errorMessage.includes('API key not valid')) {
-      return {
-        success: false,
-        message: 'APIキーが無効です。.envファイルの値を確認してください。',
-      };
-    }
-    
-    if (errorMessage.includes('permission denied')) {
-        return {
-          success: false,
-          message: 'APIキーに権限がありません。Google CloudでGemini APIが有効になっているか確認してください。',
-        };
-    }
-
     return {
       success: false,
       message: `テスト中にエラーが発生しました:\n${errorMessage}`,

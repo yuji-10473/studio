@@ -65,20 +65,6 @@ ${character.name}: `;
     console.error('Error getting AI response:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (errorMessage.includes('API key not valid')) {
-      return {
-        success: false,
-        message: '提供されたAPIキーは無効です。もう一度確認してください。',
-      };
-    }
-    
-    if (errorMessage.includes('permission denied')) {
-        return {
-          success: false,
-          message: 'APIキーの権限がありません。Gemini APIが有効になっているか確認してください。',
-        };
-    }
-
     return {
       success: false,
       message: `AIの応答生成中にエラーが発生しました:\n${errorMessage}`,
