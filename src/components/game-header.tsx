@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { checkApiKey } from '@/actions/debug';
 import { testFirestoreWrite } from '@/actions/firestore-debug';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +71,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   };
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     toast({ title: 'ログアウトしました。' });
   };
@@ -118,6 +127,35 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                 ログアウト
               </Button>
             )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Cog className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleTestKey} disabled={isTestingKey}>
+                  {isTestingKey ? (
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <KeyRound className="mr-2 h-4 w-4" />
+                  )}
+                  <span>APIキーをテスト</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
+                   {isTestingFirestore ? (
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="mr-2 h-4 w-4" />
+                  )}
+                  <span>Firestore書き込みテスト</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
           </div>
         </div>
       </div>
