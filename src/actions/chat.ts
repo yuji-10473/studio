@@ -8,9 +8,12 @@ async function generateText(prompt: string, apiKey: string) {
   // We cannot use the global `ai` object from `@/ai/genkit` because
   // we need to provide the API key dynamically at runtime.
   // Instead, we initialize the Google AI plugin with the provided key.
-  const model = googleAI({ apiKey }).getGenerator('gemini-1.5-flash-latest'); 
+  const ai = genkit({
+    plugins: [googleAI({ apiKey })],
+  });
+  const model = ai.model('gemini-1.5-flash-latest');
   
-  const response = await model.generate({
+  const { text } = await model.generate({
     prompt,
     config: {
       temperature: 0.8,
@@ -18,7 +21,7 @@ async function generateText(prompt: string, apiKey: string) {
     },
   });
 
-  return response.text();
+  return text;
 }
 
 export async function getAiResponse(
