@@ -23,7 +23,7 @@ interface UseCollectionOptions {
 }
 
 export function useCollection<T>(
-  path: string,
+  path: string | null,
   options?: UseCollectionOptions
 ) {
   const [data, setData] = useState<T[] | null>(null);
@@ -36,7 +36,7 @@ export function useCollection<T>(
   const sortDirection = options?.sortDirection;
 
   const queryMemo = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !path) return null;
     let q: Query<DocumentData> = collection(firestore, path);
     if (filter) {
       q = query(q, where(...filter));
@@ -49,7 +49,11 @@ export function useCollection<T>(
   }, [path, firestore, sort, sortDirection, ...(filter || [])]);
 
   useEffect(() => {
-    if (!queryMemo) return;
+    if (!queryMemo || !path) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
     setLoading(true);
 
     const unsubscribe = onSnapshot(

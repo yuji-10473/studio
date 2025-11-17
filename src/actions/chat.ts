@@ -14,7 +14,7 @@ export async function getAiResponse(
   conversationHistory: Message[]
 ): Promise<{ success: boolean; message: string; sentimentScore?: number }> {
   const { firestore } = initializeFirebase();
-  const conversationsCollection = collection(firestore, 'conversations');
+  const conversationsCollection = collection(firestore, 'conversations_errors');
 
   const flowInput = {
     characterName: character.name,
@@ -42,21 +42,21 @@ export async function getAiResponse(
     const sentimentScore = response.sentimentScore;
     const rawResponse = response.rawResponse;
 
-    // Log success with full response
-    logData.response = {
-        text: aiMessage,
-        sentimentScore,
-        fullResponse: JSON.parse(JSON.stringify(rawResponse))
-    };
+    // Log success with full response - REMOVED FOR COST SAVING
+    // logData.response = {
+    //     text: aiMessage,
+    //     sentimentScore,
+    //     fullResponse: JSON.parse(JSON.stringify(rawResponse))
+    // };
     
-    addDoc(conversationsCollection, logData).catch(async (dbError) => {
-        const permissionError = new FirestorePermissionError({
-            path: conversationsCollection.path,
-            operation: 'create',
-            requestResourceData: logData,
-        }, dbError);
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    // addDoc(conversationsCollection, logData).catch(async (dbError) => {
+    //     const permissionError = new FirestorePermissionError({
+    //         path: conversationsCollection.path,
+    //         operation: 'create',
+    //         requestResourceData: logData,
+    //     }, dbError);
+    //     errorEmitter.emit('permission-error', permissionError);
+    // });
 
     if (!aiMessage && aiMessage !== "") { // Handle cases where the AI returns an empty string
         const finishReason = rawResponse?.candidates?.[0]?.finishReason;

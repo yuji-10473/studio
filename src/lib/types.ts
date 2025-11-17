@@ -36,14 +36,16 @@ export type Character = {
 };
 
 export type Message = {
+  id?: string;
   sender: 'user' | CharacterId;
+  characterId: CharacterId;
   text: string;
   timestamp?: FieldValue | any;
 };
 
 export type CharacterState = {
+  id?: CharacterId; // This will be the characterId
   mood: number;
-  // conversationHistory is now fully managed in Firestore subcollections
   tokAwarded: boolean;
 };
 
@@ -55,8 +57,8 @@ export type UserProfile = {
   displayName: string;
   tok: number;
   gameDate: number;
-  role: UserRole;
-  isAdmin?: boolean;
+  role?: UserRole; // Optional as it might not be on every user doc
+  isAdmin?: boolean; // Kept for logic in use-user, but role is preferred
 }
 
 export type GameState = {

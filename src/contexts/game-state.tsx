@@ -1,34 +1,36 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { Character, CharacterId, GameContextType, GameState, Message, CharacterState, UserProfile, UserRole } from '@/lib/types';
+import { Character, CharacterId, GameContextType, GameState, Message, CharacterState, UserProfile } from '@/lib/types';
 import { getAiResponse } from '@/actions/chat';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
-import type { User } from 'firebase/auth';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 const VIRTUE_THRESHOLD = 80;
 const VIRTUE_AWARD = 10;
 const MOOD_MULTIPLIER = 10; // Score (-1.0 to 1.0) will be multiplied by this
 
-const STORAGE_KEY = 'townfolk-tales-gamestate';
-
-const GameStateContext = createContext<GameContextType | undefined>(undefined);
-
-const createInitialState = (characters: Character[] | null, user: User | null): GameState => {
-  const characterStates = characters ? characters.reduce((acc, char) => {
-    if (char.id) {
-      acc[char.id] = {
-        mood: 50,
-        tokAwarded: false,
-      };
+const createInitialState = (characters: Character[] | null, userStates: CharacterState[] | null): GameState => {
+  const characterStates = characters && userStates ? userStates.reduce((acc, state) => {
+    if (state.id) {
+        acc[state.id] = state;
     }
     return acc;
   }, {} as Record<CharacterId, CharacterState>) : null;
+
+  // Fill in any missing character states
+  if (characters && characterStates) {
+    for (const char of characters) {
+        if (char.id && !characterStates[char.id]) {
+            characterStates[char.id] = { mood: 50, tokAwarded: false };
+        }
+    }
+  }
+
 
   return {
     characters,
@@ -38,35 +40,31 @@ const createInitialState = (characters: Character[] | null, user: User | null): 
     activeConversation: null,
     isAiResponding: false,
     errorMessage: '',
-    user: user,
+    user: null, // Will be populated by useUser
     loading: true,
-    userRole: 'user',
+    userRole: 'user', // Will be populated by useUser
   };
 };
+
+const GameStateContext = createContext<GameContextType | undefined>(undefined);
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const { user, role: userRole, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>('characters');
   
-  // We only want to fetch the user profile if the user is logged in.
-  // The useDoc hook is modified to handle a null path.
   const userProfilePath = useMemo(() => (user ? `users/${user.uid}` : null), [user]);
   const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(userProfilePath);
-
+  
+  const characterStatesPath = useMemo(() => (user ? `users/${user.uid}/characterStates` : null), [user]);
+  const { data: characterStatesFromDb, loading: characterStatesLoading } = useCollection<CharacterState>(characterStatesPath);
 
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
-
+  
+  // Effect for creating user profile on first login
   useEffect(() => {
-    const loading = userLoading || charactersLoading || (user && userProfileLoading);
-    if (loading) {
-      setState(prev => ({...prev, loading: true}));
-      return;
-    }
-    
-    // Create user profile if it doesn't exist
-    if (user && !userProfile && firestore) {
+    if (user && !userLoading && !userProfile && !userProfileLoading && firestore) {
         const userDocRef = doc(firestore, 'users', user.uid);
         getDoc(userDocRef).then(docSnap => {
             if (!docSnap.exists()) {
@@ -79,92 +77,65 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                 setDoc(userDocRef, newUserProfile);
             }
         });
-        // The useDoc hook will refetch and update the userProfile state, triggering another rerender.
-        // We can continue with the current flow as it will be corrected shortly.
+    }
+  }, [user, userLoading, userProfile, userProfileLoading, firestore]);
+
+  // Main effect to synchronize state from Firestore
+  useEffect(() => {
+    const loading = userLoading || charactersLoading || (user && (userProfileLoading || characterStatesLoading));
+    
+    if (loading) {
+      setState(prev => ({...prev, loading: true}));
+      return;
     }
 
-
     setState(prevState => {
-      const isInitialLoad = !prevState.characters;
-      const characters = charactersFromDb || [];
+        const characters = charactersFromDb || [];
+        const userStates = characterStatesFromDb || [];
 
-      if (!isInitialLoad) {
-         const characterStates = characters.reduce((acc, char) => {
-          if (char.id) {
-            acc[char.id] = prevState.characterStates?.[char.id] || {
-              mood: 50,
-              tokAwarded: false,
-            };
-          }
-          return acc;
+        const characterStates = characters.reduce((acc, char) => {
+            if (char.id) {
+                const existingState = userStates.find(s => s.id === char.id);
+                acc[char.id] = existingState || { id: char.id, mood: 50, tokAwarded: false };
+            }
+            return acc;
         }, {} as Record<CharacterId, CharacterState>);
+        
+        // If a new character was added, we might need to create a state for them
+        if (user && firestore && characters.length > userStates.length) {
+            const batch = writeBatch(firestore);
+            characters.forEach(char => {
+                if (char.id && !userStates.some(s => s.id === char.id)) {
+                    const newStateRef = doc(firestore, `users/${user.uid}/characterStates`, char.id);
+                    batch.set(newStateRef, { mood: 50, tokAwarded: false });
+                }
+            });
+            batch.commit().catch(e => console.error("Failed to create new character states", e));
+        }
 
         return {
-          ...prevState,
-          user,
-          userRole,
-          characters,
-          characterStates,
-          tok: userProfile?.tok ?? 0,
-          gameDate: userProfile?.gameDate ?? 1,
-          loading: false,
+            ...prevState,
+            user,
+            userRole,
+            characters,
+            characterStates,
+            tok: userProfile?.tok ?? 0,
+            gameDate: userProfile?.gameDate ?? 1,
+            loading: false,
         };
-      }
-      
-      const initialState = createInitialState(characters, user);
-      let characterStates = initialState.characterStates;
-
-      try {
-        const savedStateJSON = localStorage.getItem(STORAGE_KEY);
-        if (savedStateJSON) {
-          const savedState = JSON.parse(savedStateJSON);
-          
-          if (savedState.characterStates) {
-            characterStates = characters.reduce((acc, char) => {
-              if (char.id) {
-                acc[char.id] = savedState.characterStates?.[char.id] || {
-                    mood: 50,
-                    tokAwarded: false,
-                };
-              }
-              return acc;
-            }, {} as Record<CharacterId, CharacterState>);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load character states from localStorage", error);
-      }
-      
-      return {
-        ...initialState,
-        characterStates,
-        userRole,
-        tok: userProfile?.tok ?? 0,
-        gameDate: userProfile?.gameDate ?? 1,
-        loading: false
-      };
     });
 
-  }, [user, userRole, userLoading, charactersFromDb, charactersLoading, userProfile, userProfileLoading, firestore]);
+  }, [
+      user, userRole, userLoading, 
+      charactersFromDb, charactersLoading, 
+      userProfile, userProfileLoading,
+      characterStatesFromDb, characterStatesLoading,
+      firestore
+  ]);
 
 
-  useEffect(() => {
-    if (state && !state.loading && state.characterStates) {
-      try {
-        const stateToSave = { 
-            characterStates: state.characterStates
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-      } catch (error) {
-        console.error("Failed to save game state to localStorage", error);
-      }
-    }
-  }, [state]);
-  
   const updateState = useCallback((updater: (prevState: GameState) => GameState) => {
-    setState(prevState => {
-        return updater(prevState);
-    });
+    setState(updater);
   }, []);
 
   const setErrorMessage = useCallback((message: string) => {
@@ -192,22 +163,29 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     setErrorMessage('');
     const charId = state.activeConversation;
-    const userMessage: Message = { sender: 'user', text, timestamp: serverTimestamp() };
+    const conversationHistoryRef = collection(firestore, 'users', user.uid, 'conversationHistory');
+
+    const userMessage: Message = { 
+        sender: 'user', 
+        text, 
+        timestamp: serverTimestamp(),
+        characterId: charId 
+    };
 
     updateState(prev => ({ ...prev, isAiResponding: true }));
 
-    const conversationHistoryRef = collection(firestore, 'characters', charId, 'conversationHistory');
     
-    const historyQuery = query(conversationHistoryRef, orderBy('timestamp', 'desc'), limit(4));
+    const historyQuery = query(
+        conversationHistoryRef, 
+        where('characterId', '==', charId),
+        orderBy('timestamp', 'desc'), 
+        limit(10)
+    );
     const historySnapshot = await getDocs(historyQuery);
     
     const plainHistory = historySnapshot.docs.map(doc => {
       const data = doc.data();
-      const timestamp = data.timestamp;
-      if (timestamp instanceof Timestamp) {
-        return { ...data, timestamp: timestamp.toDate().toISOString() };
-      }
-      return data;
+      return { ...data, timestamp: (data.timestamp as Timestamp).toDate().toISOString() };
     }).reverse() as Message[];
 
     await addDoc(conversationHistoryRef, userMessage);
@@ -222,7 +200,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const result = await getAiResponse(activeCharacter, text, plainHistory);
     
     if (result.success) {
-      const aiMessage: Message = { sender: charId, text: result.message, timestamp: serverTimestamp() };
+      const aiMessage: Message = { 
+          sender: charId, 
+          text: result.message, 
+          timestamp: serverTimestamp(),
+          characterId: charId
+      };
       await addDoc(conversationHistoryRef, aiMessage);
       
       const currentCharacterState = state.characterStates[charId];
@@ -239,28 +222,18 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           description: `${activeCharacter.name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
         });
         
-        // Update user profile in Firestore
         const userDocRef = doc(firestore, 'users', user.uid);
         await setDoc(userDocRef, { tok: newTok }, { merge: true });
       }
 
-      updateState(prev => {
-        if (!prev.characterStates) return prev;
-        
-        return {
-          ...prev,
-          tok: newTok,
-          characterStates: {
-            ...prev.characterStates,
-            [charId]: {
-              ...prev.characterStates[charId],
-              mood: newMood,
-              tokAwarded: shouldAwardTok ? true : currentCharacterState.tokAwarded,
-            },
-          },
-          isAiResponding: false,
-        };
-      });
+      const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
+      await setDoc(characterStateRef, { 
+          mood: newMood,
+          tokAwarded: shouldAwardTok ? true : currentCharacterState.tokAwarded
+      }, { merge: true });
+
+      updateState(prev => ({...prev, isAiResponding: false}));
+      // State will be updated by the Firestore listener, no need to setState here for tok/mood
     } else {
       setErrorMessage(result.message);
       updateState(prev => ({
@@ -282,31 +255,30 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       });
   }, [firestore, toast, setErrorMessage]);
 
-  const stayAtInn = useCallback(() => {
-    if (!firestore || !user) return;
+  const stayAtInn = useCallback(async () => {
+    if (!firestore || !user || !state.characterStates) return;
     
-    setState(prev => {
-      const newGameDate = prev.gameDate + 1;
-      
-      // We need to do this outside the setState to avoid race conditions
-      const userDocRef = doc(firestore, 'users', user.uid);
-      setDoc(userDocRef, { gameDate: newGameDate }, { merge: true });
+    const newGameDate = state.gameDate + 1;
+    
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const batch = writeBatch(firestore);
+    
+    batch.update(userDocRef, { gameDate: newGameDate });
 
-      const resetCharacterStates = prev.characterStates ? Object.keys(prev.characterStates).reduce((acc, key) => {
-        acc[key as CharacterId] = { mood: 50, tokAwarded: false };
-        return acc;
-      }, {} as Record<CharacterId, CharacterState>) : null;
-      
-      toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
-
-      return {
-        ...prev,
-        gameDate: newGameDate,
-        characterStates: resetCharacterStates,
-      }
+    Object.keys(state.characterStates).forEach(charId => {
+        const charStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
+        batch.set(charStateRef, { mood: 50, tokAwarded: false });
     });
 
-  }, [firestore, user, toast]);
+    try {
+        await batch.commit();
+        toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
+        // Local state will update via Firestore listeners
+    } catch (error) {
+        setErrorMessage(`宿に泊まる処理中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+  }, [firestore, user, toast, state.gameDate, state.characterStates, setErrorMessage]);
 
   
   const contextValue: GameContextType = {

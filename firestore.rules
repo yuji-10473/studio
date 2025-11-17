@@ -16,10 +16,20 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // --- User Profile Rules ---
+    // --- User Profile, States, and History Rules ---
     match /users/{userId} {
       // Allow a user to read and manage their own profile
       allow read, create, update: if request.auth.uid == userId;
+    }
+
+    match /users/{userId}/characterStates/{characterId} {
+      // Allow a user to read and write their own character states
+      allow read, write: if request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/conversationHistory/{messageId} {
+        // Allow a user to read and write their own conversation history
+        allow read, write: if request.auth.uid == userId;
     }
 
     // --- Admins Rules ---
@@ -39,12 +49,6 @@ service cloud.firestore {
     // This rule now checks for the existence of the user's ID in the /admins collection
     match /characters/{characterId} {
        allow write: if exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-    
-    // --- Conversation History Rules ---
-    // Allow authenticated users to read and write to conversation history subcollections
-    match /characters/{characterId}/conversationHistory/{messageId} {
-        allow read, write: if request.auth != null;
     }
     
     // By default, disallow all other reads and writes.

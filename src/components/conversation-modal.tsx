@@ -20,6 +20,8 @@ import type { Character, CharacterState, CharacterId, Message } from '@/lib/type
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCollection } from '@/firebase/firestore/use-collection';
+import { useUser } from '@/firebase';
+import { where } from 'firebase/firestore';
 
 
 type ConversationModalProps = {
@@ -33,8 +35,19 @@ type ConversationModalProps = {
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const { setErrorMessage } = useGameState();
+  const { user } = useUser();
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
-  const { data: conversationHistory, loading, error } = useCollection<Message>(`characters/${characterId}/conversationHistory`, { sort: 'timestamp', sortDirection: 'asc' });
+  
+  const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
+  const { data: conversationHistory, loading, error } = useCollection<Message>(
+    conversationPath, 
+    { 
+      sort: 'timestamp', 
+      sortDirection: 'asc',
+      filter: ['characterId', '==', characterId]
+    }
+  );
+
 
   useEffect(() => {
     if (error) {
@@ -44,12 +57,8 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
 
   const sortedHistory = useMemo(() => {
     if (!conversationHistory) return [];
-    // Ensure timestamp is a Date object for correct sorting
-    return [...conversationHistory].sort((a, b) => {
-        const dateA = a.timestamp?.toDate() ?? new Date(0);
-        const dateB = b.timestamp?.toDate() ?? new Date(0);
-        return dateA.getTime() - dateB.getTime();
-    });
+    // The query now sorts by timestamp, so we can just use the data as is.
+    return conversationHistory;
   }, [conversationHistory]);
 
 
@@ -71,7 +80,7 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
         <div className="p-4 space-y-4">
         {sortedHistory.map((msg, index) => (
           <div
-            key={index}
+            key={msg.id || index}
             className={cn(
               'flex items-end gap-2 max-w-[80%]',
               msg.sender === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'
