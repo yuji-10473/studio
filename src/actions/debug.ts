@@ -43,7 +43,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
     }
   } catch (error) {
     console.error('API Key Check Error:', error);
-    const errorMessage = error instanceof Error ? error.message : '不明なエラーが発生しました。';
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (errorMessage.includes('API key not valid')) {
       return {
@@ -61,7 +61,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
 
     return {
       success: false,
-      message: `テスト中にエラーが発生しました: ${errorMessage}`,
+      message: `テスト中にエラーが発生しました:\n${errorMessage}`,
     };
   }
 }

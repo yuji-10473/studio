@@ -63,7 +63,7 @@ ${character.name}: `;
     return { success: true, message: aiMessage };
   } catch (error) {
     console.error('Error getting AI response:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (errorMessage.includes('API key not valid')) {
       return {
@@ -81,7 +81,7 @@ ${character.name}: `;
 
     return {
       success: false,
-      message: `AIの応答生成中にエラーが発生しました。コンソールで詳細を確認してください。`,
+      message: `AIの応答生成中にエラーが発生しました:\n${errorMessage}`,
     };
   }
 }
