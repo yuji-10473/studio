@@ -1,5 +1,6 @@
 import type {ImagePlaceholder} from './placeholder-images';
 import type { User } from 'firebase/auth';
+import type { FieldValue } from 'firebase/firestore';
 
 // This is now used only as a fallback or for initial data structure reference.
 // The primary source of truth is Firestore.
@@ -35,14 +36,15 @@ export type Character = {
 };
 
 export type Message = {
+  id?: string;
   sender: 'user' | CharacterId;
   text: string;
-  id: number;
+  timestamp?: FieldValue | any;
 };
 
 export type CharacterState = {
   mood: number;
-  conversationHistory: Message[];
+  conversationHistory: Message[]; // This is now primarily managed in Firestore
   tokAwarded: boolean;
 };
 

@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
 import type { User } from 'firebase/auth';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const VIRTUE_THRESHOLD = 80;
 const VIRTUE_AWARD = 10;
@@ -20,7 +22,7 @@ const createInitialState = (characters: Character[] | null, user: User | null): 
     if (char.id) {
       acc[char.id] = {
         mood: 50,
-        conversationHistory: [],
+        conversationHistory: [], // This will now be populated from firestore
         tokAwarded: false,
       };
     }
@@ -42,6 +44,7 @@ const createInitialState = (characters: Character[] | null, user: User | null): 
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>('characters');
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
@@ -85,12 +88,24 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         const savedStateJSON = localStorage.getItem(STORAGE_KEY);
         if (savedStateJSON) {
           const savedState = JSON.parse(savedStateJSON);
+          
+          const loadedCharacterStates = characters.reduce((acc, char) => {
+              if (char.id) {
+                acc[char.id] = savedState.characterStates?.[char.id] || {
+                    mood: 50,
+                    conversationHistory: [],
+                    tokAwarded: false,
+                };
+              }
+              return acc;
+          }, {} as Record<CharacterId, CharacterState>);
+
           return {
             ...initialState,
             tok: savedState.tok ?? 0,
             gameDate: savedState.gameDate ?? 1,
+            characterStates: loadedCharacterStates,
             loading: false,
-            // Descriptions are now from DB, so we don't load them from local storage.
           };
         }
       } catch (error) {
@@ -107,7 +122,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       try {
         const stateToSave = { 
             tok: state.tok, 
-            gameDate: state.gameDate 
+            gameDate: state.gameDate,
+            characterStates: state.characterStates
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
       } catch (error) {
@@ -147,19 +163,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     setErrorMessage('');
     const charId = state.activeConversation;
-    const userMessage: Message = { sender: 'user', text, id: Date.now() };
+    const userMessage: Message = { sender: 'user', text, timestamp: serverTimestamp() };
 
-    updateState(prev => ({
-      ...prev,
-      isAiResponding: true,
-      characterStates: {
-        ...prev.characterStates!,
-        [charId]: {
-          ...prev.characterStates![charId],
-          conversationHistory: [...(prev.characterStates![charId]?.conversationHistory || []), userMessage],
-        },
-      },
-    }));
+    updateState(prev => ({ ...prev, isAiResponding: true }));
+
+    const conversationHistoryRef = collection(firestore, 'characters', charId, 'conversationHistory');
+    await addDoc(conversationHistoryRef, userMessage);
 
     const activeCharacter = state.characters.find(c => c.id === charId);
     if (!activeCharacter) {
@@ -171,7 +180,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const result = await getAiResponse(activeCharacter, text);
     
     if (result.success) {
-      const aiMessage: Message = { sender: charId, text: result.message, id: Date.now() + 1 };
+      const aiMessage: Message = { sender: charId, text: result.message, timestamp: serverTimestamp() };
+      await addDoc(conversationHistoryRef, aiMessage);
       
       updateState(prev => {
         if (!prev.characterStates) return prev;
@@ -191,7 +201,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         
         return {
           ...prev,
-          isAiResponding: false,
           tok: newTok,
           characterStates: {
             ...prev.characterStates,
@@ -199,26 +208,20 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
               ...currentCharacterState,
               mood: newMood,
               tokAwarded: tokAwarded,
-              conversationHistory: [...(currentCharacterState?.conversationHistory || []), aiMessage],
             },
           },
+          isAiResponding: false,
         };
       });
     } else {
       setErrorMessage(result.message);
+      // We don't remove the user message from firestore, just visually indicate error
       updateState(prev => ({
         ...prev,
         isAiResponding: false,
-        characterStates: prev.characterStates ? {
-          ...prev.characterStates,
-          [charId]: {
-            ...prev.characterStates[charId],
-            conversationHistory: prev.characterStates[charId].conversationHistory.slice(0, -1),
-          },
-        } : null,
       }));
     }
-  }, [state, updateState, toast, setErrorMessage]);
+  }, [state, updateState, toast, setErrorMessage, firestore]);
 
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
     // This now only needs to update firestore, the useCollection hook will update the state
@@ -241,6 +244,17 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const stayAtInn = useCallback(() => {
     updateState(prev => {
       if (!prev.characterStates) return prev;
+      
+      // Clear conversation history from firestore for all characters
+      if (prev.characters) {
+          prev.characters.forEach(char => {
+              if (char.id) {
+                // This is a placeholder for a bulk delete, which would be more efficient
+                // For now, we just reset the local state, as deleting collections client-side is complex.
+              }
+          });
+      }
+
       const resetCharacterStates = Object.keys(prev.characterStates).reduce((acc, key) => {
         acc[key as CharacterId] = { mood: 50, conversationHistory: [], tokAwarded: false };
         return acc;

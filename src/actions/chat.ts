@@ -1,11 +1,11 @@
 'use server';
 
 import type { Character } from '@/lib/types';
-import { initializeFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { isGenkitError } from '@/lib/genkit';
+import { initializeFirebase } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 // Initialize Genkit and AI model directly in the server action
 const apiKey = process.env.GEMINI_API_KEY;
@@ -63,21 +63,6 @@ ${character.name}: `;
     if (!aiMessage) {
         throw new Error('AIから空の応答が返されました。');
     }
-
-    // Log conversation to Firestore for debugging
-    try {
-        const { firestore } = initializeFirebase();
-        await addDoc(collection(firestore, 'conversations'), {
-            characterName: character.name,
-            userMessage: userMessage,
-            aiResponse: aiMessage,
-            timestamp: serverTimestamp(),
-        });
-    } catch (dbError) {
-        console.error("Failed to log conversation to Firestore:", dbError);
-        // We don't want to fail the whole operation if logging fails.
-    }
-
 
     return { success: true, message: aiMessage };
   } catch (error) {

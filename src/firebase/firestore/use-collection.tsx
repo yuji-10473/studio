@@ -9,6 +9,7 @@ import {
   DocumentData,
   FirestoreError,
   QuerySnapshot,
+  orderBy,
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
 
@@ -33,7 +34,9 @@ export function useCollection<T>(
     if (options?.filter) {
       q = query(q, where(...options.filter));
     }
-    // Note: Sorting will be implemented later
+    if (options?.sort) {
+      q = query(q, orderBy(options.sort, options.sortDirection || 'asc'));
+    }
     return q;
   }, [path, options, firestore]);
 
