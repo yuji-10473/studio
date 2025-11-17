@@ -11,7 +11,7 @@ async function generateText(prompt: string, apiKey: string) {
   const ai = genkit({
     plugins: [googleAI({ apiKey })],
   });
-  const model = googleAI.model('gemini-2.5-flash');
+  const model = googleAI.model('gemini-1.5-flash');
   
   const response = await ai.generate({
     model,
