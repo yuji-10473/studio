@@ -31,7 +31,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
         prompt: 'Hello',
         config: {
             temperature: 0,
-            maxOutputTokens: 10,
+            maxOutputTokens: 50,
         },
     });
 
