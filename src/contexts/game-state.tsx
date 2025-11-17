@@ -171,7 +171,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     const conversationHistoryRef = collection(firestore, 'characters', charId, 'conversationHistory');
     
-    const historyQuery = query(conversationHistoryRef, orderBy('timestamp', 'desc'), limit(10));
+    const historyQuery = query(conversationHistoryRef, orderBy('timestamp', 'desc'), limit(4));
     const historySnapshot = await getDocs(historyQuery);
     
     const plainHistory = historySnapshot.docs.map(doc => {
@@ -258,19 +258,20 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const stayAtInn = useCallback(() => {
     if (!firestore || !user) return;
     
-    const newGameDate = state.gameDate + 1;
-    
-    const userDocRef = doc(firestore, 'users', user.uid);
-    setDoc(userDocRef, { gameDate: newGameDate }, { merge: true });
-
     setState(prev => {
       if (!prev.characterStates) return prev;
       
+      const newGameDate = prev.gameDate + 1;
+      const userDocRef = doc(firestore, 'users', user.uid);
+      setDoc(userDocRef, { gameDate: newGameDate }, { merge: true });
+
       const resetCharacterStates = Object.keys(prev.characterStates).reduce((acc, key) => {
         acc[key as CharacterId] = { mood: 50, tokAwarded: false };
         return acc;
       }, {} as Record<CharacterId, CharacterState>);
       
+      toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
+
       return {
         ...prev,
         gameDate: newGameDate,
@@ -278,9 +279,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
-
-  }, [firestore, user, state.gameDate, toast]);
+  }, [firestore, user, toast]);
 
   
   const contextValue: GameContextType = {
