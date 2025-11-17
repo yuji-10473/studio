@@ -31,7 +31,7 @@ type ConversationModalProps = {
 };
 
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const { setErrorMessage } = useGameState();
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
   const { data: conversationHistory, loading, error } = useCollection<Message>(`characters/${characterId}/conversationHistory`, { sort: 'timestamp', sortDirection: 'asc' });
@@ -54,9 +54,9 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
 
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
+    if (viewportRef.current) {
+        viewportRef.current.scrollTo({
+        top: viewportRef.current.scrollHeight,
         behavior: 'smooth',
       });
     }
@@ -67,7 +67,7 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   }
 
   return (
-    <ScrollArea className="flex-grow" ref={scrollAreaRef}>
+    <ScrollArea className="flex-grow" viewportRef={viewportRef}>
         <div className="p-4 space-y-4">
         {sortedHistory.map((msg, index) => (
           <div
