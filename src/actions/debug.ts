@@ -23,10 +23,11 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
     const ai = genkit({
         plugins: [googleAI({ apiKey })],
     });
-    const model = ai.model('googleai/gemini-1.5-flash-latest');
+    const model = googleAI.model('gemini-1.5-flash-latest');
 
     // Make a simple, non-empty request to validate the key and API access.
-    const response = await model.generate({
+    const response = await ai.generate({
+        model,
         prompt: 'Hello',
         config: {
             temperature: 0,
