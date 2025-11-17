@@ -16,14 +16,14 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // Allow authenticated users to read and write to the characters collection.
+    // Allow authenticated users to read and write to the characters collection and ALL of its subcollections.
+    match /characters/{characterId}/{path=**} {
+        allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to read and write top-level character documents.
     match /characters/{characterId} {
       allow read, write: if request.auth != null;
-
-      // Allow authenticated users to read and write to their conversation history for a character
-      match /conversationHistory/{messageId} {
-          allow read, write: if request.auth != null;
-      }
     }
     
     // By default, disallow all other reads and writes.
