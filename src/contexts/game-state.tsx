@@ -264,33 +264,25 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState, toast]);
 
   const stayAtInn = useCallback(() => {
-    updateState(prev => {
+    setState(prev => {
       if (!prev.characterStates) return prev;
       
-      // Clear conversation history from firestore for all characters
-      if (prev.characters) {
-          prev.characters.forEach(char => {
-              if (char.id) {
-                // This is a placeholder for a bulk delete, which would be more efficient
-                // For now, we just reset the local state, as deleting collections client-side is complex.
-              }
-          });
-      }
-
       const resetCharacterStates = Object.keys(prev.characterStates).reduce((acc, key) => {
         acc[key as CharacterId] = { mood: 50, conversationHistory: [], tokAwarded: false };
         return acc;
       }, {} as Record<CharacterId, CharacterState>);
       
-      toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
-
       return {
         ...prev,
         gameDate: prev.gameDate + 1,
         characterStates: resetCharacterStates,
       }
     });
-  }, [updateState, toast]);
+
+    // Notify the user after the state update has been queued
+    toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
+
+  }, [toast]);
 
   
   const contextValue: GameContextType = {
