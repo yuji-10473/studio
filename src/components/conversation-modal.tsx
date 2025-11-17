@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, LoaderCircle, Volume2, PlayCircle } from 'lucide-react';
+import { Send, Bot, User, LoaderCircle } from 'lucide-react';
 import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
@@ -32,7 +32,7 @@ type ConversationModalProps = {
 
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const { setErrorMessage, activeAudio, playAudio, stopAudio } = useGameState();
+  const { setErrorMessage } = useGameState();
   const { user } = useUser();
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
   
@@ -102,16 +102,6 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
               )}
             >
               {msg.text}
-              {msg.audio && msg.id && (
-                 <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute -top-4 -right-4 h-8 w-8 text-muted-foreground opacity-20 group-hover:opacity-100 transition-opacity"
-                    onClick={() => activeAudio === msg.id ? stopAudio() : playAudio(msg.id!, msg.audio!)}
-                  >
-                    {activeAudio === msg.id ? <PlayCircle className="w-5 h-5 text-primary animate-pulse" /> : <Volume2 className="w-5 h-5" />}
-                  </Button>
-              )}
             </div>
           </div>
         ))}
@@ -128,13 +118,11 @@ export default function ConversationModal({
   characterState,
   characterId,
 }: ConversationModalProps) {
-  const { sendMessage, isAiResponding, userRole, activeAudio } = useGameState();
+  const { sendMessage, isAiResponding, userRole, isSpeaking } = useGameState();
   const [message, setMessage] = useState('');
   
   const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const isResponding = isAiResponding || !!activeAudio;
+  const isResponding = isAiResponding || isSpeaking;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -180,7 +168,7 @@ export default function ConversationModal({
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={`${character.name}にメッセージを送信...`}
+              placeholder={isSpeaking ? "キャラクターが話しています..." : `${character.name}にメッセージを送信...`}
               className="min-h-0 h-12 resize-none"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {

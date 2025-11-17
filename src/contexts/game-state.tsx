@@ -43,7 +43,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     user: null, // Will be populated by useUser
     loading: true,
     userRole: 'user', // Will be populated by useUser
-    activeAudio: null,
+    isSpeaking: false,
   };
 };
 
@@ -62,7 +62,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   
   // Effect for creating user profile on first login
   useEffect(() => {
@@ -144,18 +144,64 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateState(prev => ({ ...prev, errorMessage: message }));
   }, [updateState]);
 
+
+  const speak = useCallback((text: string, onEnd?: () => void) => {
+    if (!window.speechSynthesis) {
+        console.warn("Web Speech API is not supported by this browser.");
+        onEnd?.();
+        return;
+    }
+    cancelSpeech(); // Cancel any ongoing speech
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP'; // Set language to Japanese
+    
+    // Find a Japanese voice
+    const voices = window.speechSynthesis.getVoices();
+    const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
+    if (japaneseVoice) {
+      utterance.voice = japaneseVoice;
+    }
+
+    utterance.onstart = () => {
+      updateState(prev => ({ ...prev, isSpeaking: true }));
+    };
+
+    utterance.onend = () => {
+      updateState(prev => ({ ...prev, isSpeaking: false }));
+      utteranceRef.current = null;
+      onEnd?.();
+    };
+
+    utterance.onerror = (event) => {
+      console.error("SpeechSynthesisUtterance.onerror", event);
+      updateState(prev => ({ ...prev, isSpeaking: false }));
+      utteranceRef.current = null;
+      onEnd?.();
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [updateState]);
+
+  const cancelSpeech = useCallback(() => {
+    if (window.speechSynthesis && utteranceRef.current) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+      updateState(prev => ({ ...prev, isSpeaking: false }));
+    }
+  }, [updateState]);
+
+
   const startConversation = useCallback((characterId: CharacterId) => {
     setErrorMessage('');
     updateState(prev => ({ ...prev, activeConversation: characterId }));
   }, [updateState, setErrorMessage]);
 
   const endConversation = useCallback(() => {
-    updateState(prev => ({ ...prev, activeConversation: null, activeAudio: null }));
-    if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-    }
-  }, [updateState]);
+    cancelSpeech();
+    updateState(prev => ({ ...prev, activeConversation: null }));
+  }, [updateState, cancelSpeech]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!state || !state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user) return;
@@ -212,10 +258,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           sender: charId, 
           text: result.message, 
           timestamp: serverTimestamp(),
-          characterId: charId,
-          audio: result.audio
+          characterId: charId
       };
-      const docRef = await addDoc(conversationHistoryRef, aiMessage);
+      await addDoc(conversationHistoryRef, aiMessage);
       
       const currentCharacterState = state.characterStates[charId];
       const moodChange = (result.sentimentScore || 0) * MOOD_MULTIPLIER;
@@ -241,10 +286,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           tokAwarded: shouldAwardTok ? true : currentCharacterState.tokAwarded
       }, { merge: true });
 
-      updateState(prev => ({...prev, isAiResponding: false}));
-      if (result.audio) {
-          playAudio(docRef.id, result.audio);
-      }
+      speak(result.message, () => {
+        updateState(prev => ({...prev, isAiResponding: false}));
+      });
       // State will be updated by the Firestore listener, no need to setState here for tok/mood
     } else {
       setErrorMessage(result.message);
@@ -253,7 +297,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         isAiResponding: false,
       }));
     }
-  }, [state, updateState, toast, setErrorMessage, firestore, user]);
+  }, [state, updateState, toast, setErrorMessage, firestore, user, speak]);
 
   const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
     if (!firestore) return;
@@ -291,35 +335,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     }
 
   }, [firestore, user, toast, state.gameDate, state.characterStates, setErrorMessage]);
-
-  const playAudio = useCallback((messageId: string, audioDataUri: string) => {
-    if (audioRef.current) {
-        audioRef.current.pause();
-    }
-    const audio = new Audio(audioDataUri);
-    audioRef.current = audio;
-    setState(prev => ({...prev, activeAudio: messageId}));
-    audio.play();
-    audio.onended = () => {
-        setState(prev => ({...prev, activeAudio: null}));
-        audioRef.current = null;
-    };
-    audio.onerror = (e) => {
-        console.error("Audio playback error", e);
-        setState(prev => ({...prev, activeAudio: null}));
-        audioRef.current = null;
-    }
-  }, []);
-
-  const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-    }
-    setState(prev => ({...prev, activeAudio: null}));
-  }, []);
-
-
   
   const contextValue: GameContextType = {
     ...state,
@@ -329,8 +344,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateCharacterPersona,
     stayAtInn,
     setErrorMessage,
-    playAudio,
-    stopAudio,
+    speak,
+    cancelSpeech,
   };
 
   return (

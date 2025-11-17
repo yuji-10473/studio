@@ -7,13 +7,12 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { dynamicCharacterIntroduction } from '@/ai/flows/dynamic-character-introduction';
-import { textToSpeech } from '@/ai/flows/tts-flow';
 
 export async function getAiResponse(
   character: Character,
   userMessage: string,
   conversationHistory: Message[]
-): Promise<{ success: boolean; message: string; audio?: string; sentimentScore?: number }> {
+): Promise<{ success: boolean; message: string; sentimentScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
 
@@ -50,11 +49,8 @@ export async function getAiResponse(
         }
         throw new Error('AIから空の応答が返されました。');
     }
-
-    // Generate audio from the AI's response text
-    const { audio } = await textToSpeech(aiMessage);
-
-    return { success: true, message: aiMessage, audio, sentimentScore };
+    
+    return { success: true, message: aiMessage, sentimentScore };
 
   } catch (error) {
     console.error('Error getting AI response:', error);

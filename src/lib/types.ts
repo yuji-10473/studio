@@ -41,7 +41,6 @@ export type Message = {
   characterId: CharacterId;
   text: string;
   timestamp?: FieldValue | any;
-  audio?: string;
 };
 
 export type CharacterState = {
@@ -73,7 +72,7 @@ export type GameState = {
   user: User | null;
   loading: boolean;
   userRole: UserRole;
-  activeAudio: string | null;
+  isSpeaking: boolean;
 };
 
 export type GameContextType = GameState & {
@@ -83,6 +82,6 @@ export type GameContextType = GameState & {
   updateCharacterPersona: (characterId: CharacterId, description: string) => void;
   stayAtInn: () => void;
   setErrorMessage: (message: string) => void;
-  playAudio: (messageId: string, audioDataUri: string) => void;
-  stopAudio: () => void;
+  speak: (text: string, onEnd?: () => void) => void;
+  cancelSpeech: () => void;
 };
