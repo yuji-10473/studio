@@ -12,7 +12,8 @@ import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Ti
 
 const VIRTUE_THRESHOLD = 80;
 const VIRTUE_AWARD = 10;
-const MOOD_INCREASE = 15;
+const MOOD_MULTIPLIER = 10; // Score (-1.0 to 1.0) will be multiplied by this
+
 const STORAGE_KEY = 'townfolk-tales-gamestate';
 
 const GameStateContext = createContext<GameContextType | undefined>(undefined);
@@ -183,8 +184,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return data;
     }).reverse() as Message[];
 
-
-    // Add new message to firestore (but not to the history we pass to the AI yet)
+    // Add new message to firestore
     await addDoc(conversationHistoryRef, userMessage);
 
     const activeCharacter = state.characters.find(c => c.id === charId);
@@ -201,7 +201,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       await addDoc(conversationHistoryRef, aiMessage);
       
       const currentCharacterState = state.characterStates[charId];
-      const newMood = Math.min(100, (currentCharacterState?.mood || 50) + MOOD_INCREASE);
+      const moodChange = (result.sentimentScore || 0) * MOOD_MULTIPLIER;
+      const newMood = Math.max(0, Math.min(100, (currentCharacterState?.mood || 50) + moodChange));
+
       let shouldAwardTok = newMood >= VIRTUE_THRESHOLD && !currentCharacterState.tokAwarded;
 
       if (shouldAwardTok) {
@@ -315,5 +317,3 @@ export const useGameState = (): GameContextType => {
   }
   return context;
 };
-
-    

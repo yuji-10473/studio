@@ -12,7 +12,7 @@ export async function getAiResponse(
   character: Character,
   userMessage: string,
   conversationHistory: Message[]
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; sentimentScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations');
 
@@ -39,11 +39,13 @@ export async function getAiResponse(
     };
     
     const aiMessage = response.aiResponse;
+    const sentimentScore = response.sentimentScore;
     const rawResponse = response.rawResponse;
 
     // Log success with full response
     logData.response = {
         text: aiMessage,
+        sentimentScore,
         fullResponse: JSON.parse(JSON.stringify(rawResponse))
     };
     
@@ -64,8 +66,7 @@ export async function getAiResponse(
         throw new Error('AIから空の応答が返されました。');
     }
 
-
-    return { success: true, message: aiMessage };
+    return { success: true, message: aiMessage, sentimentScore };
 
   } catch (error) {
     console.error('Error getting AI response:', error);
@@ -97,5 +98,3 @@ export async function getAiResponse(
     };
   }
 }
-
-    
