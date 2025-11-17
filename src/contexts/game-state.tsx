@@ -144,54 +144,61 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateState(prev => ({ ...prev, errorMessage: message }));
   }, [updateState]);
 
+  const cancelSpeech = useCallback(() => {
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      if (utteranceRef.current) {
+        utteranceRef.current = null;
+      }
+      updateState(prev => ({ ...prev, isSpeaking: false }));
+    }
+  }, [updateState]);
 
   const speak = useCallback((text: string, onEnd?: () => void) => {
-    if (!window.speechSynthesis) {
-        console.warn("Web Speech API is not supported by this browser.");
-        onEnd?.();
-        return;
-    }
-    cancelSpeech(); // Cancel any ongoing speech
+      if (!window.speechSynthesis) {
+          console.warn("Web Speech API is not supported by this browser.");
+          onEnd?.();
+          return;
+      }
+      
+      cancelSpeech();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ja-JP'; // Set language to Japanese
-    
-    // Find a Japanese voice
-    const voices = window.speechSynthesis.getVoices();
-    const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
-    if (japaneseVoice) {
-      utterance.voice = japaneseVoice;
-    }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
 
-    utterance.onstart = () => {
-      updateState(prev => ({ ...prev, isSpeaking: true }));
-    };
+      utterance.onstart = () => updateState(prev => ({ ...prev, isSpeaking: true }));
+      utterance.onend = () => {
+          updateState(prev => ({ ...prev, isSpeaking: false }));
+          utteranceRef.current = null;
+          onEnd?.();
+      };
+      utterance.onerror = (event) => {
+          console.error("SpeechSynthesisUtterance.onerror", event);
+          updateState(prev => ({ ...prev, isSpeaking: false }));
+          utteranceRef.current = null;
+          onEnd?.();
+      };
 
-    utterance.onend = () => {
-      updateState(prev => ({ ...prev, isSpeaking: false }));
-      utteranceRef.current = null;
-      onEnd?.();
-    };
+      utteranceRef.current = utterance;
 
-    utterance.onerror = (event) => {
-      console.error("SpeechSynthesisUtterance.onerror", event);
-      updateState(prev => ({ ...prev, isSpeaking: false }));
-      utteranceRef.current = null;
-      onEnd?.();
-    };
+      const setVoice = () => {
+          const voices = window.speechSynthesis.getVoices();
+          const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
+          if (japaneseVoice) {
+              utterance.voice = japaneseVoice;
+          }
+          // The cancel() call is a workaround for a common bug where speak() fails on long text.
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+      };
 
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  }, [updateState]);
-
-  const cancelSpeech = useCallback(() => {
-    if (window.speechSynthesis && utteranceRef.current) {
-      window.speechSynthesis.cancel();
-      utteranceRef.current = null;
-      updateState(prev => ({ ...prev, isSpeaking: false }));
-    }
-  }, [updateState]);
-
+      // The voices may not be loaded immediately.
+      if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.onvoiceschanged = setVoice;
+      } else {
+          setVoice();
+      }
+  }, [updateState, cancelSpeech]);
 
   const startConversation = useCallback((characterId: CharacterId) => {
     setErrorMessage('');
