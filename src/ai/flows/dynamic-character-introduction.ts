@@ -11,7 +11,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import { render } from 'mustache';
 
 // Per AI_Rules.md, we must use gemini-2.5-flash.
 const model = googleAI.model('gemini-2.5-flash');
@@ -48,7 +47,6 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 # ルール
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定に忠実に、自然な会話をしてください。
-- 会話の中で、自己紹介文（「紹介」の内容）を不自然にならないように織り交ぜてみましょう。毎回言う必要はありません。
 - 回答は日本語で、簡潔かつ会話的にしてください。
 
 # ユーザーとの会話
@@ -64,7 +62,7 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     outputSchema: DynamicCharacterIntroductionOutputSchema,
   },
   async input => {
-    const prompt = render(PROMPT_TEMPLATE, input);
+    const prompt = require('mustache').render(PROMPT_TEMPLATE, input);
 
     const response = await ai.generate({
         model,
