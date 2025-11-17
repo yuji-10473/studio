@@ -1,16 +1,27 @@
 'use server';
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import type { Character } from '@/lib/types';
 import { initializeFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+import { isGenkitError } from '@/lib/genkit';
+
+// Initialize Genkit and AI model directly in the server action
+const apiKey = process.env.GEMINI_API_KEY;
+const plugins = [];
+if (apiKey) {
+  plugins.push(googleAI({ apiKey, apiVersion: 'v1' }));
+}
+const ai = genkit({ plugins });
+// Per AI_Rules.md, we must use gemini-2.5-flash.
+const model = googleAI.model('gemini-2.5-flash');
+
 
 export async function getAiResponse(
   character: Character,
   userMessage: string
 ): Promise<{ success: boolean; message: string }> {
-  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return {
       success: false,
@@ -37,12 +48,6 @@ export async function getAiResponse(
 ${character.name}: `;
 
   try {
-    // Re-initialize genkit with the API key, similar to the working debug action.
-    const ai = genkit({
-      plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
-    });
-    // Per AI_Rules.md, we must use gemini-2.5-flash.
-    const model = googleAI.model('gemini-2.5-flash');
 
     const response = await ai.generate({
       model,
@@ -60,18 +65,32 @@ ${character.name}: `;
     }
 
     // Log conversation to Firestore for debugging
-    const { firestore } = initializeFirebase();
-    await addDoc(collection(firestore, 'conversations'), {
-        characterName: character.name,
-        userMessage: userMessage,
-        aiResponse: aiMessage,
-        timestamp: serverTimestamp(),
-    });
+    try {
+        const { firestore } = initializeFirebase();
+        await addDoc(collection(firestore, 'conversations'), {
+            characterName: character.name,
+            userMessage: userMessage,
+            aiResponse: aiMessage,
+            timestamp: serverTimestamp(),
+        });
+    } catch (dbError) {
+        console.error("Failed to log conversation to Firestore:", dbError);
+        // We don't want to fail the whole operation if logging fails.
+    }
+
 
     return { success: true, message: aiMessage };
   } catch (error) {
     console.error('Error getting AI response:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage = error instanceof Error ? error.message : String(error);
+
+     if (isGenkitError(error)) {
+        errorMessage = `API Error (${error.code}): ${error.message}`;
+        if (error.cause) {
+            errorMessage += `\nCause: ${JSON.stringify(error.cause, null, 2)}`;
+        }
+    }
+
 
     // Also log errors to Firestore
      try {
@@ -79,6 +98,7 @@ ${character.name}: `;
         await addDoc(collection(firestore, 'conversations_errors'), {
             characterName: character.name,
             userMessage: userMessage,
+            prompt: prompt, // プロンプトを記録
             error: errorMessage,
             timestamp: serverTimestamp(),
         });
