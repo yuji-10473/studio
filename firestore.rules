@@ -18,12 +18,15 @@ service cloud.firestore {
 
     // --- User Profile Rules ---
     match /users/{userId} {
-      // Allow a user to read their own profile
-      allow read: if request.auth.uid == userId;
-      // Allow a user to create their own profile, but they cannot make themselves an admin
-      allow create: if request.auth.uid == userId && !request.resource.data.isAdmin;
-      // Allow a user to update their own profile, but NOT the isAdmin field
-      allow update: if request.auth.uid == userId && !("isAdmin" in request.resource.data);
+      // Allow a user to read and manage their own profile
+      allow read, create, update: if request.auth.uid == userId;
+    }
+
+    // --- Admins Rules ---
+    // Deny all client-side reads and writes to the admins collection for security.
+    // Admin status should only be changed from the Firebase Console.
+    match /admins/{adminId} {
+      allow read, write: if false;
     }
     
     // --- Character Rules ---
@@ -32,8 +35,9 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
     // Allow admins to create, update, and delete characters
+    // This rule now checks for the existence of the user's ID in the /admins collection
     match /characters/{characterId} {
-       allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+       allow write: if exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
     
     // --- Conversation History Rules ---
