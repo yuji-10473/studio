@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
+import type { Message } from '@/lib/types';
 
 // Per AI_Rules.md, we must use gemini-2.5-flash.
 const model = googleAI.model('gemini-2.5-flash');
@@ -21,6 +22,7 @@ const DynamicCharacterIntroductionInputSchema = z.object({
     .string()
     .describe('The introduction of the character.'),
   userMessage: z.string().describe('The message from the user.'),
+  conversationHistory: z.array(z.any()).describe('The last 10 messages in the conversation.'),
 });
 export type DynamicCharacterIntroductionInput = z.infer<
   typeof DynamicCharacterIntroductionInputSchema
@@ -51,6 +53,14 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定に忠実に、自然な会話をしてください。
 - 回答は日本語で、簡潔かつ会話的にしてください。
+- 以下の会話履歴の続きを自然に生成してください。
+
+{{#conversationHistory.length}}
+# これまでの会話
+{{#conversationHistory}}
+{{#isUser}}ユーザー{{/isUser}}{{^isUser}}{{characterName}}{{/isUser}}: {{text}}
+{{/conversationHistory}}
+{{/conversationHistory.length}}
 
 上記の設定になりきって、以下のユーザーからのメッセージに応答してください。
 
@@ -69,7 +79,19 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
   },
   async input => {
     // require('mustache') is used here to avoid build issues with the library.
-    const prompt = require('mustache').render(PROMPT_TEMPLATE, input);
+    const mustache = require('mustache');
+
+    const view = {
+        ...input,
+        conversationHistory: input.conversationHistory.map(msg => ({
+            ...msg,
+            isUser: msg.sender === 'user',
+        })),
+        // A helper function for mustache to check if the history has items
+        "conversationHistory.length": input.conversationHistory.length > 0,
+    };
+    
+    const prompt = mustache.render(PROMPT_TEMPLATE, view);
 
     const response = await ai.generate({
       model,

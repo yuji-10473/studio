@@ -1,6 +1,6 @@
 'use server';
 
-import type { Character } from '@/lib/types';
+import type { Character, Message } from '@/lib/types';
 import { isGenkitError } from '@/lib/genkit';
 import { initializeFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
@@ -10,15 +10,17 @@ import { dynamicCharacterIntroduction } from '@/ai/flows/dynamic-character-intro
 
 export async function getAiResponse(
   character: Character,
-  userMessage: string
+  userMessage: string,
+  conversationHistory: Message[]
 ): Promise<{ success: boolean; message: string }> {
   const { firestore } = initializeFirebase();
-  const conversationsCollection = collection(firestore, 'conversations_errors');
+  const conversationsCollection = collection(firestore, 'conversations');
 
   const flowInput = {
     characterName: character.name,
     characterIntroduction: character.introduction,
     userMessage: userMessage,
+    conversationHistory: conversationHistory,
   };
 
   const logData: any = {

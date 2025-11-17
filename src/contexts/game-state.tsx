@@ -8,7 +8,7 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
 import type { User } from 'firebase/auth';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 const VIRTUE_THRESHOLD = 80;
 const VIRTUE_AWARD = 10;
@@ -152,7 +152,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!state || !state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates) return;
+    if (!state || !state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore) return;
 
     if (!process.env.GEMINI_API_KEY) {
       setErrorMessage(
@@ -168,6 +168,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateState(prev => ({ ...prev, isAiResponding: true }));
 
     const conversationHistoryRef = collection(firestore, 'characters', charId, 'conversationHistory');
+    
+    // Fetch last 10 messages for context
+    const historyQuery = query(conversationHistoryRef, orderBy('timestamp', 'desc'), limit(10));
+    const historySnapshot = await getDocs(historyQuery);
+    const conversationHistory = historySnapshot.docs.map(doc => doc.data() as Message).reverse();
+
+    // Add new message to firestore (but not to the history we pass to the AI yet)
     await addDoc(conversationHistoryRef, userMessage);
 
     const activeCharacter = state.characters.find(c => c.id === charId);
@@ -177,7 +184,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const result = await getAiResponse(activeCharacter, text);
+    const result = await getAiResponse(activeCharacter, text, conversationHistory);
     
     if (result.success) {
       const aiMessage: Message = { sender: charId, text: result.message, timestamp: serverTimestamp() };
@@ -185,13 +192,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       
       const currentCharacterState = state.characterStates[charId];
       const newMood = Math.min(100, (currentCharacterState?.mood || 50) + MOOD_INCREASE);
-      let newTok = state.tok;
-      let tokAwarded = currentCharacterState?.tokAwarded || false;
+      const tokAwarded = currentCharacterState?.tokAwarded || false;
       let shouldAwardTok = newMood >= VIRTUE_THRESHOLD && !tokAwarded;
 
       if (shouldAwardTok) {
-        newTok += VIRTUE_AWARD;
-        tokAwarded = true;
         toast({
           title: "徳を獲得！",
           description: `${activeCharacter.name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
@@ -201,6 +205,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       updateState(prev => {
         if (!prev.characterStates) return prev;
         
+        let newTok = prev.tok;
+        if (shouldAwardTok) {
+          newTok += VIRTUE_AWARD;
+        }
+        
         return {
           ...prev,
           tok: newTok,
@@ -209,7 +218,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             [charId]: {
               ...prev.characterStates[charId],
               mood: newMood,
-              tokAwarded: tokAwarded,
+              tokAwarded: shouldAwardTok ? true : tokAwarded,
             },
           },
           isAiResponding: false,
