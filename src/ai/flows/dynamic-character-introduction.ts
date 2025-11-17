@@ -50,6 +50,14 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定に忠実に、自然な会話をしてください。
 - 回答は日本語で、簡潔かつ会話的にしてください。
+
+上記の設定になりきって、以下のユーザーからのメッセージに応答してください。
+
+---
+ユーザー: {{userMessage}}
+---
+
+{{characterName}}:
 `;
 
 const dynamicCharacterIntroductionFlow = ai.defineFlow(
@@ -59,17 +67,12 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     outputSchema: DynamicCharacterIntroductionOutputSchema,
   },
   async input => {
-    const systemPrompt = require('mustache').render(PROMPT_TEMPLATE, {
-        characterName: input.characterName,
-        characterIntroduction: input.characterIntroduction,
-    });
-    
+    // require('mustache') is used here to avoid build issues with the library.
+    const prompt = require('mustache').render(PROMPT_TEMPLATE, input);
+
     const response = await ai.generate({
       model,
-      messages: [
-        {role: 'system', content: [{text: systemPrompt}]},
-        {role: 'user', content: [{text: input.userMessage}]},
-      ],
+      prompt: prompt,
       config: {
         temperature: 0.8,
         maxOutputTokens: 200,
@@ -77,11 +80,10 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
     });
 
     const aiResponse = response.text;
-    const fullPromptForLog = `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${input.userMessage}`;
 
     return {
       aiResponse,
-      prompt: fullPromptForLog,
+      prompt: prompt,
     };
   }
 );
