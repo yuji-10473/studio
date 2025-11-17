@@ -32,7 +32,7 @@ service cloud.firestore {
     // --- Character Rules ---
     // Allow authenticated users to read characters
     match /characters/{characterId} {
-      allow read: if request.auth != null;
+      allow read: if true;
     }
     // Allow admins to create, update, and delete characters
     // This rule now checks for the existence of the user's ID in the /admins collection
