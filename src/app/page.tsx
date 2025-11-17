@@ -18,7 +18,7 @@ function TownfolkTalesApp() {
     endConversation,
     errorMessage,
     setErrorMessage,
-    loading: gameStateLoading, // Renamed from 'loading' in useUser to avoid conflict
+    loading: gameStateLoading,
   } = useGameState();
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
 

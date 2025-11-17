@@ -47,10 +47,13 @@ export type CharacterState = {
   tokAwarded: boolean;
 };
 
+export type UserRole = 'admin' | 'user';
+
 export type UserProfile = {
   id?: string;
   tok: number;
   gameDate: number;
+  role: UserRole;
 }
 
 export type GameState = {
@@ -63,6 +66,7 @@ export type GameState = {
   errorMessage: string;
   user: User | null;
   loading: boolean;
+  userRole: UserRole;
 };
 
 export type GameContextType = GameState & {

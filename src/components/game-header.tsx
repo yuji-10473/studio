@@ -34,7 +34,7 @@ type GameHeaderProps = {
 };
 
 export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
-  const { user, tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
+  const { user, userRole, tok, gameDate, stayAtInn, setErrorMessage } = useGameState();
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
@@ -76,6 +76,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     toast({ title: 'ログアウトしました。' });
   };
 
+  const isAdmin = userRole === 'admin';
+
   return (
     <header className="bg-card border-b sticky top-0 z-10">
       <div className="container mx-auto flex items-center justify-between p-4">
@@ -95,10 +97,12 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
           </div>
           <div className="flex items-center gap-2">
             
-            <Button variant="outline" size="sm" onClick={onCreateCharacter}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              キャラクター作成
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={onCreateCharacter}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                キャラクター作成
+              </Button>
+            )}
             
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -128,33 +132,35 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
               </Button>
             )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Cog className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleTestKey} disabled={isTestingKey}>
-                  {isTestingKey ? (
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <KeyRound className="mr-2 h-4 w-4" />
-                  )}
-                  <span>APIキーをテスト</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
-                   {isTestingFirestore ? (
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Database className="mr-2 h-4 w-4" />
-                  )}
-                  <span>Firestore書き込みテスト</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Cog className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleTestKey} disabled={isTestingKey}>
+                    {isTestingKey ? (
+                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <KeyRound className="mr-2 h-4 w-4" />
+                    )}
+                    <span>APIキーをテスト</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleTestFirestoreWrite} disabled={isTestingFirestore}>
+                    {isTestingFirestore ? (
+                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Database className="mr-2 h-4 w-4" />
+                    )}
+                    <span>Firestore書き込みテスト</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
           </div>
         </div>

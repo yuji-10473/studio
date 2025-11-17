@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { Character, CharacterId, GameContextType, GameState, Message, CharacterState, UserProfile } from '@/lib/types';
+import { Character, CharacterId, GameContextType, GameState, Message, CharacterState, UserProfile, UserRole } from '@/lib/types';
 import { getAiResponse } from '@/actions/chat';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -40,11 +40,12 @@ const createInitialState = (characters: Character[] | null, user: User | null): 
     errorMessage: '',
     user: user,
     loading: true,
+    userRole: 'user',
   };
 };
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
-  const { user, loading: userLoading } = useUser();
+  const { user, role: userRole, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>('characters');
   const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(user ? `users/${user.uid}` : null);
@@ -77,6 +78,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         return {
           ...prevState,
           user,
+          userRole,
           characters,
           characterStates,
           tok: userProfile?.tok ?? 0,
@@ -112,13 +114,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return {
         ...initialState,
         characterStates,
+        userRole,
         tok: userProfile?.tok ?? 0,
         gameDate: userProfile?.gameDate ?? 1,
         loading: false
       };
     });
 
-  }, [user, userLoading, charactersFromDb, charactersLoading, userProfile, userProfileLoading]);
+  }, [user, userRole, userLoading, charactersFromDb, charactersLoading, userProfile, userProfileLoading]);
 
 
   useEffect(() => {
@@ -259,16 +262,16 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user) return;
     
     setState(prev => {
-      if (!prev.characterStates) return prev;
-      
       const newGameDate = prev.gameDate + 1;
+      
+      // We need to do this outside the setState to avoid race conditions
       const userDocRef = doc(firestore, 'users', user.uid);
       setDoc(userDocRef, { gameDate: newGameDate }, { merge: true });
 
-      const resetCharacterStates = Object.keys(prev.characterStates).reduce((acc, key) => {
+      const resetCharacterStates = prev.characterStates ? Object.keys(prev.characterStates).reduce((acc, key) => {
         acc[key as CharacterId] = { mood: 50, tokAwarded: false };
         return acc;
-      }, {} as Record<CharacterId, CharacterState>);
+      }, {} as Record<CharacterId, CharacterState>) : null;
       
       toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
 
