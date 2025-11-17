@@ -72,14 +72,14 @@ export async function getAiResponse(
     console.error('Error getting AI response:', error);
     let errorMessage = error instanceof Error ? error.message : String(error);
 
-     if (isGenkitError(error)) {
-        if (error.code === 'unavailable') {
-            errorMessage = 'AIが現在混み合っています。少し時間をおいてから、もう一度試してみてください。';
-        } else {
-            errorMessage = `API Error (${error.code}): ${error.message}`;
-            if (error.cause) {
-                errorMessage += `\nCause: ${JSON.stringify(error.cause, null, 2)}`;
-            }
+    const is503Error = errorMessage.includes('503') || errorMessage.includes('Service Unavailable');
+    
+    if (is503Error) {
+        errorMessage = 'AIが現在混み合っています。少し時間をおいてから、もう一度試してみてください。';
+    } else if (isGenkitError(error)) {
+        errorMessage = `API Error (${error.code}): ${error.message}`;
+        if (error.cause) {
+            errorMessage += `\nCause: ${JSON.stringify(error.cause, null, 2)}`;
         }
     }
     
