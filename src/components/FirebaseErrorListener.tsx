@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import { errorEmitter } from '@/firebase/error-emitter';
 
 // This component is only active in development to surface permission errors.
 export function FirebaseErrorListener() {
-  const handleError = useErrorHandler();
+  const { showBoundary: handleError } = useErrorBoundary();
 
   useEffect(() => {
     const handlePermissionError = (error: Error) => {
