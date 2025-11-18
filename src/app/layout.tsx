@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import Footer from '@/components/footer';
 
 export const metadata: Metadata = {
   title: 'Townfolk Tales',
@@ -25,9 +26,10 @@ export default function RootLayout({
           crossOrigin="anonymous"
         ></script>
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased flex flex-col min-h-screen">
         <FirebaseClientProvider>
-          {children}
+          <main className="flex-grow">{children}</main>
+          <Footer />
         </FirebaseClientProvider>
         <Toaster />
       </body>
