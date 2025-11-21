@@ -23,12 +23,11 @@ export default function ContactPage() {
               ご意見、ご感想、不具合のご報告などがございましたら、以下のメールアドレスまでご連絡ください。
             </p>
             <Button asChild variant="outline">
-              <a href="mailto:contact@example.com">
+              <a href="mailto:firebase.25.11.11@gmail.com">
                 <Mail className="mr-2 h-4 w-4" />
-                contact@example.com
+                firebase.25.11.11@gmail.com
               </a>
             </Button>
-            <p className="text-sm text-muted-foreground mt-2">※ 上記はダミーのメールアドレスです。実際の連絡先にご変更ください。</p>
           </div>
           <div className="text-center pt-4">
             <Button asChild>
