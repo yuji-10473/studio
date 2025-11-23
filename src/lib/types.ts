@@ -59,6 +59,7 @@ export type UserProfile = {
   id?: string;
   email: string;
   displayName: string;
+  bio?: string; // Add bio field
   charm: number;
   gameDate: number;
   enableTTS?: boolean; // Text-to-speech setting

@@ -78,6 +78,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                 const newUserProfile: UserProfile = {
                     email: user.email || '',
                     displayName: user.displayName || user.email?.split('@')[0] || 'New User',
+                    bio: '',
                     charm: 0,
                     gameDate: 1,
                     enableTTS: false, // Default on creation

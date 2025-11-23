@@ -13,11 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { LoaderCircle } from 'lucide-react';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, '表示名は必須です。').max(50, '表示名は50文字以内で入力してください。'),
+  bio: z.string().max(200, '自己紹介は200文字以内で入力してください。').optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -32,6 +34,7 @@ export default function ProfilePage() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: '',
+      bio: '',
     },
   });
 
@@ -39,6 +42,7 @@ export default function ProfilePage() {
     if (userProfile) {
       form.reset({
         displayName: userProfile.displayName,
+        bio: userProfile.bio || '',
       });
     }
   }, [userProfile, form]);
@@ -53,6 +57,7 @@ export default function ProfilePage() {
     try {
       await updateDoc(userDocRef, {
         displayName: data.displayName,
+        bio: data.bio,
       });
       toast({
         title: '成功',
@@ -91,7 +96,7 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="text-2xl font-headline">プロフィール編集</CardTitle>
               <CardDescription>
-                ゲーム内で使用する表示名を変更できます。
+                AIキャラクターとの会話に利用されるあなたの情報を編集できます。
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -104,6 +109,25 @@ export default function ProfilePage() {
                     <FormControl>
                       <Input placeholder="あなたの名前" {...field} />
                     </FormControl>
+                     <FormDescription>
+                      ゲーム内で使用されるあなたの名前です。
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>自己紹介</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="趣味や好きなことなど、AIにあなたを教えてあげましょう。" {...field} rows={4} />
+                    </FormControl>
+                    <FormDescription>
+                      この情報はAIキャラクターがあなたとの会話をパーソナライズするために使用されます。
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
