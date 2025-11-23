@@ -18,7 +18,6 @@ import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase';
 
@@ -34,7 +33,6 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   const viewportRef = useRef<HTMLDivElement>(null);
   const { setErrorMessage } = useGameState();
   const { user } = useUser();
-  const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
   
   const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
   // The query is simplified to avoid needing a composite index.
@@ -85,8 +83,8 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
             )}
           >
             <Avatar className="h-8 w-8">
-              {msg.sender !== 'user' && placeholder && (
-                <AvatarImage src={placeholder.imageUrl} data-ai-hint={placeholder.imageHint} />
+              {msg.sender !== 'user' && (
+                <AvatarImage src={character.imagePath} />
               )}
               {msg.sender === 'user' ? 
                 <AvatarFallback><User className="w-4 h-4" /></AvatarFallback> :
@@ -121,7 +119,6 @@ export default function ConversationModal({
   const { sendMessage, isAiResponding, userRole, isSpeaking } = useGameState();
   const [message, setMessage] = useState('');
   
-  const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
   const isResponding = isAiResponding || isSpeaking;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -137,7 +134,7 @@ export default function ConversationModal({
       <DialogContent className="max-w-xl h-[80vh] flex flex-col p-0 gap-0">
         <DialogHeader className="p-4 border-b flex-row items-center space-y-0 gap-4">
           <Avatar className="h-12 w-12">
-             {placeholder && <AvatarImage src={placeholder.imageUrl} alt={character.name} data-ai-hint={placeholder.imageHint} />}
+             <AvatarImage src={character.imagePath} alt={character.name} />
             <AvatarFallback>{character.name.slice(0, 2)}</AvatarFallback>
           </Avatar>
           <DialogTitle className="font-headline text-2xl">{character.name}と会話中</DialogTitle>
@@ -148,7 +145,7 @@ export default function ConversationModal({
         {isAiResponding && (
              <div className="p-4 flex items-center gap-2 border-t">
                  <Avatar className="h-8 w-8">
-                    {placeholder && <AvatarImage src={placeholder.imageUrl} data-ai-hint={placeholder.imageHint} />}
+                    <AvatarImage src={character.imagePath} />
                      <AvatarFallback><Bot className="w-4 h-4" /></AvatarFallback>
                  </Avatar>
                  <div className="p-3 rounded-lg bg-muted rounded-bl-none">

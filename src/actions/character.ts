@@ -7,24 +7,19 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { generateNewCharacter } from '@/ai/flows/generate-new-character';
 
-export async function createCharacter(characterData: Omit<Character, 'id' | 'imageId'>): Promise<{ success: boolean; message: string, id?: string }> {
+export async function createCharacter(characterData: Omit<Character, 'id'>): Promise<{ success: boolean; message: string, id?: string }> {
   const { firestore } = initializeFirebase();
   const charactersCollectionRef = collection(firestore, 'characters');
   
-  const newCharacterData: Omit<Character, 'id'> = {
-      ...characterData,
-      imageId: 'new-character-image', // Assign a generic placeholder
-  };
-
   try {
     // Note: We are not awaiting addDoc here to allow the optimistic update to happen.
     // The .catch() will handle the error asynchronously.
-    const docRef = addDoc(charactersCollectionRef, newCharacterData)
+    const docRef = addDoc(charactersCollectionRef, characterData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: charactersCollectionRef.path,
             operation: 'create',
-            requestResourceData: newCharacterData,
+            requestResourceData: characterData,
         }, serverError);
         // Emit the error so the dev overlay can pick it up
         errorEmitter.emit('permission-error', permissionError);
@@ -57,8 +52,13 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
       throw new Error('AIがキャラクター情報を正しく生成できませんでした。');
     }
 
+    const newCharacter: Omit<Character, 'id'> = {
+      ...generatedData,
+      imagePath: '/images/icons/icon5.png', // Assign a default icon for AI generated characters
+    };
+
     // 2. Create the character in Firestore using the existing action
-    const result = await createCharacter(generatedData);
+    const result = await createCharacter(newCharacter);
     
     if (result.success) {
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };

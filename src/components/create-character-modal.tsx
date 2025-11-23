@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,12 +20,15 @@ import { useToast } from '@/hooks/use-toast';
 import { createCharacter } from '@/actions/character';
 import { LoaderCircle } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useGameState } from '@/contexts/game-state';
+import { SelectableIcons } from '@/lib/placeholder-images';
 
 const characterSchema = z.object({
   name: z.string().min(1, { message: '名前は必須です。' }).max(20, { message: '名前は20文字以内です。'}),
   introduction: z.string().min(1, { message: '紹介文は必須です。' }).max(100, { message: '紹介文は100文字以内です。'}),
   description: z.string().min(1, { message: 'ペルソナは必須です。' }).max(500, { message: 'ペルソナは500文字以内です。'}),
+  imagePath: z.string({ required_error: 'アイコンを選択してください。' }),
 });
 
 type CharacterFormValues = z.infer<typeof characterSchema>;
@@ -45,6 +49,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
       name: '',
       introduction: '',
       description: '',
+      imagePath: SelectableIcons.length > 0 ? SelectableIcons[0].path : undefined,
     },
   });
 
@@ -72,7 +77,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>新しいキャラクターを作成</DialogTitle>
           <DialogDescription>
@@ -81,6 +86,43 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             <FormField
+              control={form.control}
+              name="imagePath"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>アイコンを選択</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="grid grid-cols-5 gap-4"
+                    >
+                      {SelectableIcons.map((icon) => (
+                        <FormItem key={icon.id} className="flex items-center justify-center">
+                          <FormControl>
+                            <RadioGroupItem value={icon.path} id={icon.id} className="sr-only" />
+                          </FormControl>
+                          <FormLabel
+                            htmlFor={icon.id}
+                            className="cursor-pointer rounded-lg border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                          >
+                             <Image
+                                src={icon.path}
+                                alt={`Icon ${icon.id}`}
+                                width={80}
+                                height={80}
+                                className="rounded-md"
+                              />
+                          </FormLabel>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="name"

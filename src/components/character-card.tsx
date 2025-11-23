@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import type { Character, CharacterState } from '@/lib/types';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type CharacterCardProps = {
   character: Character;
@@ -15,23 +14,18 @@ type CharacterCardProps = {
 };
 
 export default function CharacterCard({ character, characterState, onTalk }: CharacterCardProps) {
-  const placeholder = PlaceHolderImages.find(p => p.id === character.imageId);
-
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="flex-row gap-4 items-start p-4">
-        {placeholder && (
-          <div className="relative w-24 h-24 flex-shrink-0">
-            <Image
-              src={placeholder.imageUrl}
-              alt={character.name}
-              data-ai-hint={placeholder.imageHint}
-              width={96}
-              height={96}
-              className="rounded-lg object-cover"
-            />
-          </div>
-        )}
+        <div className="relative w-24 h-24 flex-shrink-0">
+          <Image
+            src={character.imagePath}
+            alt={character.name}
+            width={96}
+            height={96}
+            className="rounded-lg object-cover"
+          />
+        </div>
         <div className="flex-grow">
           <CardTitle className="font-headline text-2xl">{character.name}</CardTitle>
           <CardDescription className="mt-1">{character.introduction}</CardDescription>
