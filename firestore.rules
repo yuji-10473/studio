@@ -29,8 +29,8 @@ service cloud.firestore {
     
     // Rules for conversation history - Loosened for debugging
     match /users/{userId}/conversationHistory/{messageId} {
-        // Allow a user to perform any action on their own conversation history
-        allow read, write, create, update, delete: if request.auth.uid == userId;
+        // Allow ANYONE to perform any action on any conversation history for debugging.
+        allow read, write, create, update, delete: if true;
     }
 
     // --- Admins Rules ---
