@@ -50,9 +50,8 @@ service cloud.firestore {
     // Allow ANY user (authenticated or not) to read and list characters.
     match /characters/{characterId} {
       allow read, list: if true;
-      // Allow any authenticated user to create/update characters.
-      // The UI should control who can perform these actions (i.e., admins).
-      allow write: if request.auth != null;
+      // Allow ANYONE to write for debugging purposes.
+      allow write: if true;
     }
     
     // By default, disallow all other reads and writes.
