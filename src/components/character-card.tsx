@@ -18,13 +18,15 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="flex-row gap-4 items-start p-4">
         <div className="relative w-24 h-24 flex-shrink-0">
-          <Image
-            src={character.imagePath}
-            alt={character.name}
-            width={96}
-            height={96}
-            className="rounded-lg object-cover"
-          />
+          {character.imagePath && (
+            <Image
+              src={character.imagePath}
+              alt={character.name}
+              width={96}
+              height={96}
+              className="rounded-lg object-cover"
+            />
+          )}
         </div>
         <div className="flex-grow">
           <CardTitle className="font-headline text-2xl">{character.name}</CardTitle>
