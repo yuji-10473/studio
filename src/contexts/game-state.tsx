@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
@@ -287,7 +288,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
       const newAffection = Math.max(0, Math.min(100, (currentCharacterState?.affection || 50) + affectionChange));
 
-      let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !currentCharacterState.charmAwarded;
+      let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !(currentCharacterState.charmAwarded ?? false);
       
       let newCharm = state.charm;
       if (shouldAwardCharm) {
@@ -304,7 +305,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
       await setDoc(characterStateRef, { 
           affection: newAffection,
-          charmAwarded: shouldAwardCharm ? true : currentCharacterState.charmAwarded
+          charmAwarded: shouldAwardCharm ? true : (currentCharacterState.charmAwarded ?? false)
       }, { merge: true });
 
       speak(result.message);
