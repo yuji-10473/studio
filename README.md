@@ -2,8 +2,6 @@
 
 This is a NextJS starter in Firebase Studio.
 
-To get started, take a look at src/app/page.tsx.
-
 ## オリジナルキャラクターのアイコンについて
 
 オリジナルのキャラクターアイコンを追加するには、以下の2つの手順が必要です。
@@ -23,4 +21,4 @@ To get started, take a look at src/app/page.tsx.
 
 この手順により、新しいアイコンがキャラクター作成画面で選択できるようになります。
 
-Version. 0.9.1
+Version. 0.9.3
