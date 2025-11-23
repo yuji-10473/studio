@@ -1,9 +1,9 @@
 // Your web app's Firebase configuration
 export const firebaseConfig = {
-  apiKey: "AIzaSyD3VE8wVF-9LtRyxebVfxz65YDoj2FhEwY",
-  authDomain: "studio-6570696829-77683.firebaseapp.com",
-  projectId: "studio-6570696829-77683",
-  storageBucket: "studio-6570696829-77683.appspot.com",
-  messagingSenderId: "1074656178182",
-  appId: "1:1074656178182:web:b6fcab60a78a8a67dd9387"
+  apiKey: "AIzaSyALteYUXTJRtHOy08ovT-dX8T3Ap04yBXI",
+  authDomain: "studio-3901474762-72cde.firebaseapp.com",
+  projectId: "studio-3901474762-72cde",
+  storageBucket: "studio-3901474762-72cde.firebasestorage.app",
+  messagingSenderId: "379923605206",
+  appId: "1:379923605206:web:6c5b10b13fcb1d73970b77"
 };
