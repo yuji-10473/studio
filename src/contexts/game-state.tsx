@@ -43,6 +43,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     isAiResponding: false,
     errorMessage: '',
     user: null, // Will be populated by useUser
+    userProfile: null,
     loading: true,
     userRole: 'user', // Will be populated by useUser
     isSpeaking: false,
@@ -125,6 +126,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             userRole,
             characters,
             characterStates,
+            userProfile,
             charm: userProfile?.charm ?? 0,
             gameDate: userProfile?.gameDate ?? 1,
             enableTTS: userProfile?.enableTTS ?? false, // Load TTS setting, default to false
@@ -229,7 +231,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, [updateState, cancelSpeech]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!state || !state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user) return;
+    if (!state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user || !state.userProfile) return;
 
     if (!process.env.GEMINI_API_KEY) {
       setErrorMessage(
@@ -272,7 +274,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const result = await getAiResponse(activeCharacter, text, plainHistory.slice(-10));
+    const result = await getAiResponse(activeCharacter, text, plainHistory.slice(-10), state.userProfile);
     
     updateState(prev => ({ ...prev, isAiResponding: false }));
 

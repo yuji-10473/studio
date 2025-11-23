@@ -1,9 +1,11 @@
+
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2 } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -157,13 +159,6 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
               </AlertDialogContent>
             </AlertDialog>
 
-            {user && (
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                ログアウト
-              </Button>
-            )}
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -173,6 +168,12 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>設定</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>プロフィール編集</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <div className="flex items-center justify-between w-full">
                     <Label htmlFor="tts-toggle" className="flex items-center gap-2 cursor-pointer">
@@ -210,6 +211,12 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                     </DropdownMenuItem>
                   </>
                 )}
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>ログアウト</span>
+                </DropdownMenuItem>
+
               </DropdownMenuContent>
             </DropdownMenu>
 

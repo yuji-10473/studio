@@ -75,6 +75,7 @@ export type GameState = {
   isAiResponding: boolean;
   errorMessage: string;
   user: User | null;
+  userProfile: UserProfile | null;
   loading: boolean;
   userRole: UserRole;
   isSpeaking: boolean;

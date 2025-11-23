@@ -1,3 +1,4 @@
+
 import {genkit, type GenkitErrorCode, type GenkitError} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
@@ -12,7 +13,7 @@ if (!apiKey) {
 }
 
 export const ai = genkit({
-  plugins: [googleAI({apiKey, apiVersion: 'v1beta'})],
+  plugins: [googleAI({apiKey, apiVersion: 'v1'})],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });

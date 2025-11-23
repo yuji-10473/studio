@@ -1,6 +1,7 @@
+
 'use server';
 
-import type { Character, Message } from '@/lib/types';
+import type { Character, Message, UserProfile } from '@/lib/types';
 import { isGenkitError } from '@/lib/genkit';
 import { initializeFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
@@ -12,7 +13,8 @@ import { guideConversation } from '@/ai/flows/guide-conversation';
 export async function getAiResponse(
   character: Character,
   userMessage: string,
-  conversationHistory: Message[]
+  conversationHistory: Message[],
+  userProfile: UserProfile,
 ): Promise<{ success: boolean; message: string; loveScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
@@ -22,6 +24,9 @@ export async function getAiResponse(
     characterIntroduction: character.introduction,
     userMessage: userMessage,
     conversationHistory: conversationHistory,
+    userProfile: {
+      displayName: userProfile.displayName,
+    },
   };
 
   const logData: any = {

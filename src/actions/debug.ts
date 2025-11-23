@@ -1,3 +1,4 @@
+
 'use server';
 
 import { genkit } from 'genkit';
@@ -22,7 +23,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
   const { firestore } = initializeFirebase();
   const debugCollectionRef = collection(firestore, 'debug_writes');
   const requestPayload = {
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-1.5-flash-latest',
       prompt: 'Hello',
       config: {
         temperature: 0,
