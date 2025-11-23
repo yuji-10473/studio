@@ -40,7 +40,8 @@ export async function createCharacter(characterData: Omit<Character, 'id' | 'ima
     // Return the specific permission error message if it's our custom type
     if (error instanceof FirestorePermissionError) {
         // The detailed error is already emitted to the overlay, here we just give a user-friendly message.
-        return { success: false, message: `キャラクターの作成に失敗しました: Firestoreの権限がありません。` };
+        const detailedError = error.serverError ? `\n\n[詳細]: ${JSON.stringify(error.serverError, null, 2)}` : '';
+        return { success: false, message: `キャラクターの作成に失敗しました: Firestoreの権限がありません。${detailedError}` };
     }
     // Generic error message for other cases
     const errorMessage = error instanceof Error ? error.message : String(error);
