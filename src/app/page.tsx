@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { GameStateProvider, useGameState } from '@/contexts/game-state';
+import { useGameState } from '@/contexts/game-state';
 import GameHeader from '@/components/game-header';
 import CharacterGrid from '@/components/character-grid';
 import ConversationModal from '@/components/conversation-modal';
@@ -76,8 +76,6 @@ function TownfolkTalesApp() {
 
 export default function Home() {
   return (
-    <GameStateProvider>
       <TownfolkTalesApp />
-    </GameStateProvider>
   );
 }

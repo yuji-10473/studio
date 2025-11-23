@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import Footer from '@/components/footer';
+import { GameStateProvider } from '@/contexts/game-state';
 
 export const metadata: Metadata = {
   title: 'Townfolk Tales',
@@ -30,8 +31,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
         <FirebaseClientProvider>
-          <main className="flex-grow">{children}</main>
-          <Footer />
+          <GameStateProvider>
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </GameStateProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>
