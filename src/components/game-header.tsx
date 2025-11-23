@@ -37,7 +37,7 @@ type GameHeaderProps = {
 };
 
 export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
-  const { user, userRole, tok, gameDate, stayAtInn, setErrorMessage, enableTTS, setEnableTTS } = useGameState();
+  const { user, userRole, charm, gameDate, stayAtInn, setErrorMessage, enableTTS, setEnableTTS } = useGameState();
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
@@ -113,9 +113,9 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
           </h1>
         </div>
         <div className="flex items-center gap-4 md:gap-6">
-          <div className="flex items-center gap-2" title="徳ポイント">
+          <div className="flex items-center gap-2" title="魅力ポイント">
             <Heart className="text-primary" />
-            <span className="font-bold text-lg">{tok}</span>
+            <span className="font-bold text-lg">{charm}</span>
           </div>
           <div className="flex items-center gap-2" title="現在の日付">
             <CalendarDays className="text-primary" />
@@ -140,19 +140,19 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Bed className="mr-2 h-4 w-4" />
-                  宿に泊まる
+                  次の日へ
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>宿に泊まりますか？</AlertDialogTitle>
+                  <AlertDialogTitle>次の日に進みますか？</AlertDialogTitle>
                   <AlertDialogDescription>
-                    一日を終え、新しい日を始めます。すべてのキャラクターの機嫌と会話の履歴がリセットされます。
+                    一日を終え、新しい日を始めます。すべてのキャラクターの好感度と会話の履歴がリセットされます。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                  <AlertDialogAction onClick={stayAtInn}>泊まる</AlertDialogAction>
+                  <AlertDialogAction onClick={stayAtInn}>進む</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

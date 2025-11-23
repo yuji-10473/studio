@@ -45,8 +45,8 @@ export type Message = {
 
 export type CharacterState = {
   id?: CharacterId; // This will be the characterId
-  mood: number;
-  tokAwarded: boolean;
+  affection: number;
+  charmAwarded: boolean;
 };
 
 export type UserRole = 'admin' | 'user';
@@ -55,7 +55,7 @@ export type UserProfile = {
   id?: string;
   email: string;
   displayName: string;
-  tok: number;
+  charm: number;
   gameDate: number;
   enableTTS?: boolean; // Text-to-speech setting
   role?: UserRole; // Optional as it might not be on every user doc
@@ -65,7 +65,7 @@ export type UserProfile = {
 export type GameState = {
   characters: Character[] | null;
   characterStates: Record<CharacterId, CharacterState> | null;
-  tok: number;
+  charm: number;
   gameDate: number;
   activeConversation: CharacterId | null;
   isAiResponding: boolean;

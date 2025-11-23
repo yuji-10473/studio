@@ -35,9 +35,9 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
       </CardHeader>
       <CardContent className="flex-grow p-4 py-2">
         <div className="space-y-2">
-            <Label htmlFor={`mood-${character.name}`} className="text-sm font-medium">機嫌</Label>
-            <Progress id={`mood-${character.name}`} value={characterState.mood} className="w-full" />
-            <p className="text-right text-sm text-muted-foreground">{characterState.mood} / 100</p>
+            <Label htmlFor={`affection-${character.name}`} className="text-sm font-medium">好感度</Label>
+            <Progress id={`affection-${character.name}`} value={characterState.affection} className="w-full" />
+            <p className="text-right text-sm text-muted-foreground">{characterState.affection} / 100</p>
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">

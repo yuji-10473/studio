@@ -29,7 +29,7 @@ export type DynamicCharacterIntroductionInput = z.infer<
 
 const DynamicCharacterIntroductionOutputSchema = z.object({
   aiResponse: z.string().describe('The AI character response.'),
-  sentimentScore: z.number().describe('The sentiment score of the AI response.'),
+  loveScore: z.number().describe('The love score of the AI response based on romantic elements.'),
   prompt: z.string().describe('The full prompt sent to the AI.'),
   rawResponse: z.any().describe('The raw response from the AI model.'),
 });
@@ -43,7 +43,7 @@ export async function dynamicCharacterIntroduction(
   return dynamicCharacterIntroductionFlow(input);
 }
 
-const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲームのキャラクターとして振る舞います。
+const PROMPT_TEMPLATE = `あなたはこれから恋愛シミュレーションゲームのキャラクターとして振る舞います。
 
 # キャラクター設定
 名前: {{characterName}}
@@ -52,8 +52,8 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 # ルール
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定に忠実に、自然な会話をしてください。
+- ユーザーとの会話内容を評価し、ユーザーへの恋愛感情や好意がどれだけ増減したかを-1.0（悪化した）から1.0（とても良くなった）の範囲でスコア(loveScore)を付けてください。
 - 以下の会話履歴の続きを自然に生成してください。
-- 会話内容を評価し、-1.0（ネガティブ）から1.0（ポジティブ）の範囲で感情スコア(sentimentScore)を付けてください。
 
 {{#conversationHistory.length}}
 # これまでの会話
@@ -71,7 +71,7 @@ const PROMPT_TEMPLATE = `あなたはこれからロールプレイングゲー�
 \`\`\`json
 {
   "aiResponse": "ここに{{characterName}}としての返答を記述します。",
-  "sentimentScore": 0.0
+  "loveScore": 0.0
 }
 \`\`\`
 `;
@@ -108,7 +108,7 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
 
     const responseText = response.text.trim();
     let aiResponse = '';
-    let sentimentScore = 0;
+    let loveScore = 0;
 
     try {
       // Find the start and end of the JSON block
@@ -122,19 +122,19 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
       
       const parsed = JSON.parse(jsonString);
       aiResponse = parsed.aiResponse;
-      sentimentScore = parsed.sentimentScore;
+      loveScore = parsed.loveScore;
     } catch(e) {
         console.error("Failed to parse AI response as JSON.", e, "Raw response:", responseText);
         // If parsing fails, use the raw text as a fallback and score as neutral.
         // This makes the UI more robust against occasional model failures.
         aiResponse = responseText;
-        sentimentScore = 0;
+        loveScore = 0;
     }
 
 
     return {
       aiResponse,
-      sentimentScore,
+      loveScore,
       prompt: prompt,
       rawResponse: response,
     };

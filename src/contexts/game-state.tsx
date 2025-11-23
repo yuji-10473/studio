@@ -10,9 +10,9 @@ import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where, updateDoc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
-const VIRTUE_THRESHOLD = 80;
-const VIRTUE_AWARD = 10;
-const MOOD_MULTIPLIER = 10; // Score (-1.0 to 1.0) will be multiplied by this
+const CHARM_THRESHOLD = 80;
+const CHARM_AWARD = 10;
+const AFFECTION_MULTIPLIER = 10; // Score (-1.0 to 1.0) will be multiplied by this
 
 const createInitialState = (characters: Character[] | null, userStates: CharacterState[] | null): GameState => {
   const characterStates = characters && userStates ? userStates.reduce((acc, state) => {
@@ -26,7 +26,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
   if (characters && characterStates) {
     for (const char of characters) {
         if (char.id && !characterStates[char.id]) {
-            characterStates[char.id] = { mood: 50, tokAwarded: false };
+            characterStates[char.id] = { affection: 50, charmAwarded: false };
         }
     }
   }
@@ -35,7 +35,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
   return {
     characters,
     characterStates,
-    tok: 0,
+    charm: 0,
     gameDate: 1,
     activeConversation: null,
     isAiResponding: false,
@@ -75,7 +75,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                 const newUserProfile: UserProfile = {
                     email: user.email || '',
                     displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-                    tok: 0,
+                    charm: 0,
                     gameDate: 1,
                     enableTTS: false, // Default on creation
                 };
@@ -101,7 +101,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         const characterStates = characters.reduce((acc, char) => {
             if (char.id) {
                 const existingState = userStates.find(s => s.id === char.id);
-                acc[char.id] = existingState || { id: char.id, mood: 50, tokAwarded: false };
+                acc[char.id] = existingState || { id: char.id, affection: 50, charmAwarded: false };
             }
             return acc;
         }, {} as Record<CharacterId, CharacterState>);
@@ -111,7 +111,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             characters.forEach(char => {
                 if (char.id && !userStates.some(s => s.id === char.id)) {
                     const newStateRef = doc(firestore, `users/${user.uid}/characterStates`, char.id);
-                    batch.set(newStateRef, { mood: 50, tokAwarded: false });
+                    batch.set(newStateRef, { affection: 50, charmAwarded: false });
                 }
             });
             batch.commit().catch(e => console.error("Failed to create new character states", e));
@@ -123,7 +123,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             userRole,
             characters,
             characterStates,
-            tok: userProfile?.tok ?? 0,
+            charm: userProfile?.charm ?? 0,
             gameDate: userProfile?.gameDate ?? 1,
             enableTTS: userProfile?.enableTTS ?? false, // Load TTS setting, default to false
             loading: false,
@@ -284,27 +284,27 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       await addDoc(conversationHistoryRef, aiMessage);
       
       const currentCharacterState = state.characterStates[charId];
-      const moodChange = (result.sentimentScore || 0) * MOOD_MULTIPLIER;
-      const newMood = Math.max(0, Math.min(100, (currentCharacterState?.mood || 50) + moodChange));
+      const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
+      const newAffection = Math.max(0, Math.min(100, (currentCharacterState?.affection || 50) + affectionChange));
 
-      let shouldAwardTok = newMood >= VIRTUE_THRESHOLD && !currentCharacterState.tokAwarded;
+      let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !currentCharacterState.charmAwarded;
       
-      let newTok = state.tok;
-      if (shouldAwardTok) {
-        newTok += VIRTUE_AWARD;
+      let newCharm = state.charm;
+      if (shouldAwardCharm) {
+        newCharm += CHARM_AWARD;
         toast({
-          title: "徳を獲得！",
-          description: `${activeCharacter.name}の機嫌が良くなりました。徳を${VIRTUE_AWARD}ポイント獲得しました。`,
+          title: "魅力アップ！",
+          description: `${activeCharacter.name}との仲が深まりました。魅力が${CHARM_AWARD}ポイント上昇しました。`,
         });
         
         const userDocRef = doc(firestore, 'users', user.uid);
-        await updateDoc(userDocRef, { tok: newTok });
+        await updateDoc(userDocRef, { charm: newCharm });
       }
 
       const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
       await setDoc(characterStateRef, { 
-          mood: newMood,
-          tokAwarded: shouldAwardTok ? true : currentCharacterState.tokAwarded
+          affection: newAffection,
+          charmAwarded: shouldAwardCharm ? true : currentCharacterState.charmAwarded
       }, { merge: true });
 
       speak(result.message);
@@ -337,14 +337,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     Object.keys(state.characterStates).forEach(charId => {
         const charStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
-        batch.set(charStateRef, { mood: 50, tokAwarded: false });
+        batch.set(charStateRef, { affection: 50, charmAwarded: false });
     });
 
     try {
         await batch.commit();
-        toast({ title: "新しい一日", description: "宿に泊まり、新しい一日が始まりました。"});
+        toast({ title: "新しい一日", description: "次の日になり、キャラクターの好感度がリセットされました。"});
     } catch (error) {
-        setErrorMessage(`宿に泊まる処理中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+        setErrorMessage(`処理中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
 
   }, [firestore, user, toast, state.gameDate, state.characterStates, setErrorMessage]);
