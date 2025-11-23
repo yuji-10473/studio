@@ -22,7 +22,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
   const { firestore } = initializeFirebase();
   const debugCollectionRef = collection(firestore, 'debug_writes');
   const requestPayload = {
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-pro-preview',
       prompt: 'Hello',
       config: {
         temperature: 0,
@@ -34,7 +34,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
     const ai = genkit({
       plugins: [googleAI({ apiKey, apiVersion: 'v1' })],
     });
-    // Per AI_Rules.md, we must use gemini-2.5-flash.
+
     const model = googleAI.model(requestPayload.model);
 
     const response = await ai.generate({

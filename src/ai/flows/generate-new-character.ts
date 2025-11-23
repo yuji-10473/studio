@@ -12,8 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
-// Per AI_Rules.md, we must use gemini-2.5-flash.
-const model = googleAI.model('gemini-2.5-flash');
+const model = googleAI.model('gemini-3-pro-preview');
 
 const GenerateNewCharacterInputSchema = z.object({
   theme: z.string().describe('The theme or archetype for the character to be generated. e.g., "A grumpy blacksmith", "A cheerful merchant"'),

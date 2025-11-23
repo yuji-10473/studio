@@ -13,8 +13,7 @@ import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import type { Message } from '@/lib/types';
 
-// Per AI_Rules.md, we must use gemini-2.5-flash.
-const model = googleAI.model('gemini-2.5-flash');
+const model = googleAI.model('gemini-3-pro-preview');
 
 const DynamicCharacterIntroductionInputSchema = z.object({
   characterName: z.string().describe('The name of the character to talk to.'),
