@@ -7,6 +7,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { dynamicCharacterIntroduction } from '@/ai/flows/dynamic-character-introduction';
+import { guideConversation } from '@/ai/flows/guide-conversation';
 
 export async function getAiResponse(
   character: Character,
@@ -80,6 +81,32 @@ export async function getAiResponse(
         errorEmitter.emit('permission-error', permissionError);
     });
 
+    return {
+      success: false,
+      message: `AIの応答生成中にエラーが発生しました:\n${errorMessage}`,
+    };
+  }
+}
+
+export async function getGuideResponse(
+  userMessage: string,
+  conversationHistory: { role: 'user' | 'model'; content: string }[]
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await guideConversation({ userMessage, conversationHistory });
+    const aiMessage = response.aiResponse;
+
+    if (!aiMessage && aiMessage !== '') {
+      throw new Error('AIから空の応答が返されました。');
+    }
+    return { success: true, message: aiMessage };
+  } catch (error) {
+    console.error('Error getting guide AI response:', error);
+    let errorMessage =
+      error instanceof Error ? error.message : String(error);
+    if (isGenkitError(error)) {
+      errorMessage = `API Error (${error.code}): ${error.message}`;
+    }
     return {
       success: false,
       message: `AIの応答生成中にエラーが発生しました:\n${errorMessage}`,

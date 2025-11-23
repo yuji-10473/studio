@@ -9,7 +9,8 @@ import DebugError from '@/components/debug-error';
 import CreateCharacterModal from '@/components/create-character-modal';
 import { LoaderCircle } from 'lucide-react';
 import Login from '@/components/login';
-import AppGuide from '@/components/app-guide';
+import GuideCharacter from '@/components/app-guide';
+import GuideConversationModal from '@/components/guide-conversation-modal';
 
 function TownfolkTalesApp() {
   const { 
@@ -23,6 +24,7 @@ function TownfolkTalesApp() {
     loading: gameStateLoading,
   } = useGameState();
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [isGuideModalOpen, setGuideModalOpen] = useState(false);
 
   const activeCharacter = activeConversation && characters && characters.find(c => c.id === activeConversation);
   const activeCharacterState = activeConversation && characterStates ? characterStates[activeConversation] : null;
@@ -47,7 +49,7 @@ function TownfolkTalesApp() {
     <div className="min-h-screen bg-background text-foreground">
       <GameHeader onCreateCharacter={() => setCreateModalOpen(true)} />
       <main className="container mx-auto p-4 md:p-8">
-        <AppGuide />
+        <GuideCharacter onTalk={() => setGuideModalOpen(true)} />
         <CharacterGrid />
       </main>
       {activeConversation && activeCharacter && activeCharacterState && (
@@ -59,6 +61,10 @@ function TownfolkTalesApp() {
           characterId={activeConversation}
         />
       )}
+      <GuideConversationModal 
+        isOpen={isGuideModalOpen}
+        onClose={() => setGuideModalOpen(false)}
+      />
       <CreateCharacterModal 
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}

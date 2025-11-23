@@ -4,6 +4,7 @@ import {googleAI} from '@genkit-ai/google-genai';
 import '@/ai/flows/generate-character-persona.ts';
 import '@/ai/flows/dynamic-character-introduction.ts';
 import '@/ai/flows/generate-new-character.ts';
+import '@/ai/flows/guide-conversation.ts';
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
