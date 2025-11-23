@@ -1,3 +1,4 @@
+
 import type {ImagePlaceholder} from './placeholder-images';
 import type { User } from 'firebase/auth';
 import type { FieldValue } from 'firebase/firestore';
@@ -32,7 +33,10 @@ export type Character = {
   name: string;
   introduction: string;
   description: string;
-  imagePath: string; // Changed from imageId to imagePath
+  imagePath: string;
+  isLocked?: boolean;
+  unlockCost?: number;
+  unlockedBy?: string[]; // Array of user UIDs who have unlocked this character
 };
 
 export type Message = {
@@ -87,4 +91,6 @@ export type GameContextType = GameState & {
   speak: (text: string, onEnd?: () => void) => void;
   cancelSpeech: () => void;
   setEnableTTS: (enabled: boolean) => void;
+  unlockCharacter: (characterId: CharacterId) => Promise<void>;
 };
+

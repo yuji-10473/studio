@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 const CHARM_THRESHOLD = 80;
@@ -366,6 +366,41 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       updateState(prev => ({...prev, enableTTS: !enabled}));
     }
   }, [user, firestore, updateState, cancelSpeech, setErrorMessage]);
+
+  const unlockCharacter = useCallback(async (characterId: CharacterId) => {
+    if (!firestore || !user || !state.characters) return;
+    const character = state.characters.find(c => c.id === characterId);
+    if (!character || !character.isLocked) return;
+
+    const cost = character.unlockCost ?? 0;
+    if (state.charm < cost) {
+      toast({
+        variant: "destructive",
+        title: "ポイントが足りません",
+        description: `このキャラクターを解放するには${cost}の魅力ポイントが必要です。`,
+      });
+      return;
+    }
+
+    const batch = writeBatch(firestore);
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const characterDocRef = doc(firestore, 'characters', characterId);
+
+    const newCharm = state.charm - cost;
+    batch.update(userDocRef, { charm: newCharm });
+    batch.update(characterDocRef, { unlockedBy: arrayUnion(user.uid) });
+
+    try {
+      await batch.commit();
+      toast({
+        title: "解放成功！",
+        description: `${character.name}との会話が可能になりました。`,
+      });
+    } catch (error) {
+      setErrorMessage(`キャラクターの解放に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+  }, [firestore, user, state.characters, state.charm, toast, setErrorMessage]);
   
   const contextValue: GameContextType = {
     ...state,
@@ -378,6 +413,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     speak,
     cancelSpeech,
     setEnableTTS,
+    unlockCharacter,
   };
 
   return (

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { initializeFirebase } from '@/firebase';
@@ -10,10 +11,15 @@ import { generateNewCharacter } from '@/ai/flows/generate-new-character';
 export async function createCharacter(characterData: Omit<Character, 'id'>): Promise<{ success: boolean; message: string, id?: string }> {
   const { firestore } = initializeFirebase();
   const charactersCollectionRef = collection(firestore, 'characters');
+
+  const finalData: Omit<Character, 'id'> = {
+    ...characterData,
+    unlockedBy: [], // Initialize unlockedBy as an empty array
+  };
   
   try {
     // We are awaiting the result here to properly catch the error.
-    const docRef = await addDoc(charactersCollectionRef, characterData);
+    const docRef = await addDoc(charactersCollectionRef, finalData);
     return { success: true, message: 'キャラクターを作成しました。', id: docRef.id };
   } catch (error) {
     console.error('Error creating character:', error);
@@ -22,7 +28,7 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
     const permissionError = new FirestorePermissionError({
         path: charactersCollectionRef.path,
         operation: 'create',
-        requestResourceData: characterData,
+        requestResourceData: finalData,
     }, error);
     errorEmitter.emit('permission-error', permissionError);
 
@@ -46,6 +52,8 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     const newCharacter: Omit<Character, 'id'> = {
       ...generatedData,
       imagePath: '/images/icons/icon5.png', // Assign a default icon for AI generated characters
+      isLocked: true,
+      unlockCost: 20,
     };
 
     // 2. Create the character in Firestore using the existing action
@@ -63,3 +71,4 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     return { success: false, message: `AIキャラクターの作成中にエラーが発生しました:\n${errorMessage}` };
   }
 }
+

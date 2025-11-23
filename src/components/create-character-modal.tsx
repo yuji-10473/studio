@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -19,16 +20,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCharacter } from '@/actions/character';
 import { LoaderCircle } from 'lucide-react';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useGameState } from '@/contexts/game-state';
 import { SelectableIcons } from '@/lib/placeholder-images';
+import { Switch } from './ui/switch';
 
 const characterSchema = z.object({
   name: z.string().min(1, { message: '名前は必須です。' }).max(20, { message: '名前は20文字以内です。'}),
   introduction: z.string().min(1, { message: '紹介文は必須です。' }).max(100, { message: '紹介文は100文字以内です。'}),
   description: z.string().min(1, { message: 'ペルソナは必須です。' }).max(500, { message: 'ペルソナは500文字以内です。'}),
   imagePath: z.string({ required_error: 'アイコンを選択してください。' }),
+  isLocked: z.boolean().default(false),
+  unlockCost: z.coerce.number().int().min(0, { message: '0以上の数値を入力してください。' }).optional(),
 });
 
 type CharacterFormValues = z.infer<typeof characterSchema>;
@@ -50,8 +54,12 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
       introduction: '',
       description: '',
       imagePath: SelectableIcons.length > 0 ? SelectableIcons[0].path : undefined,
+      isLocked: false,
+      unlockCost: 0,
     },
   });
+
+  const isLocked = form.watch('isLocked');
 
   const handleClose = () => {
     if (isSubmitting) return;
@@ -62,7 +70,13 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
   const onSubmit = async (data: CharacterFormValues) => {
     setIsSubmitting(true);
     setErrorMessage('');
-    const result = await createCharacter(data);
+
+    const characterData = {
+      ...data,
+      unlockCost: data.isLocked ? data.unlockCost || 0 : 0,
+    };
+
+    const result = await createCharacter(characterData);
     if (result.success) {
       toast({
         title: '成功',
@@ -162,6 +176,44 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="isLocked"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">このキャラクターをロックする</FormLabel>
+                    <FormDescription>
+                      ONにすると、ユーザーは魅力ポイントを消費してキャラクターを解放する必要があります。
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            {isLocked && (
+              <FormField
+                control={form.control}
+                name="unlockCost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>解放コスト（魅力ポイント）</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="例: 20" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                 キャンセル
