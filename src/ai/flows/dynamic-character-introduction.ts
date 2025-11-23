@@ -14,7 +14,7 @@ import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import type { Message, UserProfile } from '@/lib/types';
 
-const model = googleAI.model('gemini-1.5-flash-latest');
+const model = googleAI.model('gemini-2.5-flash');
 
 const DynamicCharacterIntroductionInputSchema = z.object({
   characterName: z.string().describe('The name of the character to talk to.'),

@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
-const model = googleAI.model('gemini-1.5-flash-latest');
+const model = googleAI.model('gemini-2.5-flash');
 
 const GenerateNewCharacterInputSchema = z.object({
   theme: z.string().describe('The theme or archetype for the character to be generated. e.g., "A grumpy blacksmith", "A cheerful merchant"'),

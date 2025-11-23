@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
-const model = googleAI.model('gemini-1.5-flash-latest');
+const model = googleAI.model('gemini-2.5-flash');
 
 const GuideConversationInputSchema = z.object({
   userMessage: z.string().describe('The message from the user.'),
