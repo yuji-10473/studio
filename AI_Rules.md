@@ -4,8 +4,9 @@
 
 ## 1. AIモデルの指定
 
-- **AI関連の機能では、必ず `gemini-2.5-flash` モデルを使用してください。**
-- `gemini-1.5-flash`、`gemini-1.5-flash-latest`、`gemini-3-pro-preview`、その他のモデルは使用しないでください。
+- **AI関連の機能では、原則として `gemini-2.5-flash` モデルを使用してください。**
+- `gemini-1.5-flash`、`gemini-1.5-flash-latest`、その他の明記されていないモデルは使用しないでください。
+- `gemini-3-pro-preview` は、今後、特定の機能で使用する可能性があります。
 - このルールを変更する場合は、必ず明確な指示がある場合に限ります。
 
 ## 2. プロジェクトについて
