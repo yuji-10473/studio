@@ -9,6 +9,7 @@ import DebugError from '@/components/debug-error';
 import CreateCharacterModal from '@/components/create-character-modal';
 import { LoaderCircle } from 'lucide-react';
 import Login from '@/components/login';
+import AppGuide from '@/components/app-guide';
 
 function TownfolkTalesApp() {
   const { 
@@ -46,6 +47,7 @@ function TownfolkTalesApp() {
     <div className="min-h-screen bg-background text-foreground">
       <GameHeader onCreateCharacter={() => setCreateModalOpen(true)} />
       <main className="container mx-auto p-4 md:p-8">
+        <AppGuide />
         <CharacterGrid />
       </main>
       {activeConversation && activeCharacter && activeCharacterState && (
