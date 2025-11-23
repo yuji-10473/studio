@@ -24,9 +24,7 @@ export async function getAiResponse(
     characterIntroduction: character.introduction,
     userMessage: userMessage,
     conversationHistory: conversationHistory,
-    userProfile: {
-      displayName: userProfile.displayName,
-    },
+    userProfile: userProfile,
   };
 
   const logData: any = {

@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import type { Message } from '@/lib/types';
+import type { Message, UserProfile } from '@/lib/types';
 
 const model = googleAI.model('gemini-1.5-flash-latest');
 
@@ -23,9 +23,7 @@ const DynamicCharacterIntroductionInputSchema = z.object({
     .describe('The introduction of the character.'),
   userMessage: z.string().describe('The message from the user.'),
   conversationHistory: z.array(z.any()).describe('The last 10 messages in the conversation.'),
-  userProfile: z.object({
-    displayName: z.string().describe("The user's display name."),
-  }).describe('The profile of the user.'),
+  userProfile: z.custom<UserProfile>().describe('The profile of the user.'),
 });
 export type DynamicCharacterIntroductionInput = z.infer<
   typeof DynamicCharacterIntroductionInputSchema
@@ -54,12 +52,14 @@ const PROMPT_TEMPLATE = `あなたはこれから恋愛シミュレーション�
 紹介: {{characterIntroduction}}
 
 # 会話相手の情報
-名前: {{userProfile.displayName}}
+以下のJSONオブジェクトは、あなたが会話する相手のユーザー情報です。この情報を参考にして、自然でパーソナルな会話を心がけてください。例えば、相手の名前を会話に含めると、より親密な雰囲気になります。
+\`\`\`json
+{{{userProfileJson}}}
+\`\`\`
 
 # ルール
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
-- 相手の名前は「{{userProfile.displayName}}」です。会話の中で自然に名前を呼んであげると、相手は喜びます。
-- キャラクター設定に忠実に、自然な会話をしてください。
+- キャラクター設定と、上記の「会話相手の情報」に忠実に、自然な会話をしてください。
 - ユーザーとの会話内容を評価し、ユーザーへの恋愛感情や好意がどれだけ増減したかを-1.0（悪化した）から1.0（とても良くなった）の範囲でスコア(loveScore)を付けてください。
 - 以下の会話履歴の続きを自然に生成してください。
 
@@ -96,6 +96,7 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
 
     const view = {
         ...input,
+        userProfileJson: JSON.stringify(input.userProfile, null, 2),
         conversationHistory: input.conversationHistory.map(msg => ({
             ...msg,
             isUser: msg.sender === 'user',
