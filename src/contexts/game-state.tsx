@@ -10,6 +10,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { toggleCharacterLock as toggleCharacterLockAction } from '@/actions/character';
 
 const CHARM_THRESHOLD = 80;
 const CHARM_AWARD = 10;
@@ -402,6 +403,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   }, [firestore, user, state.characters, state.charm, toast, setErrorMessage]);
   
+  const toggleCharacterLock = useCallback(async (characterId: string, isLocked: boolean) => {
+    return await toggleCharacterLockAction(characterId, isLocked);
+  }, []);
+  
   const contextValue: GameContextType = {
     ...state,
     startConversation,
@@ -414,6 +419,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     cancelSpeech,
     setEnableTTS,
     unlockCharacter,
+    toggleCharacterLock,
   };
 
   return (

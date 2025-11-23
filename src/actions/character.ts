@@ -2,7 +2,7 @@
 'use server';
 
 import { initializeFirebase } from '@/firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
 import type { Character } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -72,3 +72,20 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
   }
 }
 
+/**
+ * DEBUG: Toggles the isLocked status of a character.
+ * This is an admin-only action.
+ */
+export async function toggleCharacterLock(characterId: string, isLocked: boolean): Promise<{ success: boolean; message: string }> {
+    try {
+        const { firestore } = initializeFirebase();
+        const characterDocRef = doc(firestore, 'characters', characterId);
+        await updateDoc(characterDocRef, {
+            isLocked: !isLocked
+        });
+        return { success: true, message: `キャラクターのロック状態を${!isLocked ? 'ロック' : 'アンロック'}しました。` };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { success: false, message: `ロック状態の切り替えに失敗しました: ${errorMessage}` };
+    }
+}

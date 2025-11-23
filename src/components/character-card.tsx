@@ -8,8 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import type { Character, CharacterState } from '@/lib/types';
 import { useGameState } from '@/contexts/game-state';
-import { Lock, Sparkles, LoaderCircle } from 'lucide-react';
+import { Lock, Sparkles, LoaderCircle, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 type CharacterCardProps = {
   character: Character;
@@ -18,8 +19,10 @@ type CharacterCardProps = {
 };
 
 export default function CharacterCard({ character, characterState, onTalk }: CharacterCardProps) {
-  const { user, charm, unlockCharacter } = useGameState();
+  const { user, charm, unlockCharacter, toggleCharacterLock, userRole, setErrorMessage } = useGameState();
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
+  const { toast } = useToast();
   
   const isCharacterLockedForUser = character.isLocked && !character.unlockedBy?.includes(user?.uid ?? '');
 
@@ -29,6 +32,22 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
     await unlockCharacter(character.id);
     setIsUnlocking(false);
   }
+
+  const handleToggleLock = async () => {
+    if (!character.id) return;
+    setIsTogglingLock(true);
+    const result = await toggleCharacterLock(character.id, !!character.isLocked);
+    if (result.success) {
+      toast({
+        title: 'デバッグ操作成功',
+        description: result.message,
+      })
+    } else {
+      setErrorMessage(result.message);
+    }
+    setIsTogglingLock(false);
+  };
+
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
@@ -61,7 +80,7 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
             <p className="text-right text-sm text-muted-foreground">{isCharacterLockedForUser ? '??' : characterState.affection} / 100</p>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 flex flex-col items-stretch gap-2">
         {isCharacterLockedForUser ? (
             <Button onClick={handleUnlock} className="w-full" disabled={isUnlocking || charm < (character.unlockCost ?? 0)}>
                 {isUnlocking ? (
@@ -76,8 +95,17 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
               話す
             </Button>
         )}
+        {userRole === 'admin' && (
+          <Button variant="destructive" size="sm" className="w-full" onClick={handleToggleLock} disabled={isTogglingLock}>
+            {isTogglingLock ? (
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Zap className="mr-2 h-4 w-4" />
+            )}
+            デバッグ: ロック切り替え
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
 }
-

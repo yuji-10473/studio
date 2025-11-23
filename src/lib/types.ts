@@ -92,5 +92,5 @@ export type GameContextType = GameState & {
   cancelSpeech: () => void;
   setEnableTTS: (enabled: boolean) => void;
   unlockCharacter: (characterId: CharacterId) => Promise<void>;
+  toggleCharacterLock: (characterId: string, isLocked: boolean) => Promise<{ success: boolean, message: string }>;
 };
-
