@@ -24,7 +24,7 @@ service cloud.firestore {
 
     match /users/{userId}/characterStates/{characterId} {
       // Allow a user to read and write their own character states
-      allow list, read, write: if request.auth.uid == userId;
+      allow list, read, create, update, delete: if request.auth.uid == userId;
     }
     
     // Rules for conversation history
