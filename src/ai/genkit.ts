@@ -8,7 +8,7 @@ import {googleAI} from '@genkit-ai/google-genai';
 const apiKey = process.env.GEMINI_API_KEY;
 const plugins = [];
 if (apiKey) {
-  plugins.push(googleAI({apiKey, apiVersion: 'v1beta'}));
+  plugins.push(googleAI({apiKey, apiVersion: 'v1'}));
 }
 
 export const ai = genkit({

@@ -23,7 +23,7 @@ export async function checkApiKey(): Promise<{ success: boolean; message: string
   const { firestore } = initializeFirebase();
   const debugCollectionRef = collection(firestore, 'debug_writes');
   const requestPayload = {
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash',
       prompt: 'Hello',
       config: {
         temperature: 0,
