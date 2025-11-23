@@ -12,35 +12,26 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
   const charactersCollectionRef = collection(firestore, 'characters');
   
   try {
-    // Note: We are not awaiting addDoc here to allow the optimistic update to happen.
-    // The .catch() will handle the error asynchronously.
-    const docRef = addDoc(charactersCollectionRef, characterData)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: charactersCollectionRef.path,
-            operation: 'create',
-            requestResourceData: characterData,
-        }, serverError);
-        // Emit the error so the dev overlay can pick it up
-        errorEmitter.emit('permission-error', permissionError);
-        // Also throw it to be caught by the local try/catch, which surfaces it to the UI
-        throw permissionError;
-      });
-
-    // Since we are not awaiting, we can't return the docRef.id immediately.
-    // The success is optimistic. A full implementation might handle this differently.
-    return { success: true, message: 'キャラクターを作成しました。' };
+    // We are awaiting the result here to properly catch the error.
+    const docRef = await addDoc(charactersCollectionRef, characterData);
+    return { success: true, message: 'キャラクターを作成しました。', id: docRef.id };
   } catch (error) {
     console.error('Error creating character:', error);
-    // Return the specific permission error message if it's our custom type
-    if (error instanceof FirestorePermissionError) {
-        // The detailed error is already emitted to the overlay, here we just give a user-friendly message.
-        const detailedError = error.serverError ? `\n\n[詳細]: ${JSON.stringify(error.serverError, null, 2)}` : '';
-        return { success: false, message: `キャラクターの作成に失敗しました: Firestoreの権限がありません。${detailedError}` };
-    }
-    // Generic error message for other cases
+    
+    // Create and emit the detailed permission error for the dev overlay
+    const permissionError = new FirestorePermissionError({
+        path: charactersCollectionRef.path,
+        operation: 'create',
+        requestResourceData: characterData,
+    }, error);
+    errorEmitter.emit('permission-error', permissionError);
+
+    // Return a user-friendly message for the UI
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return { success: false, message: `キャラクターの作成中にエラーが発生しました:\n${errorMessage}` };
+    return { 
+        success: false, 
+        message: `キャラクターの作成中にエラーが発生しました。詳細は開発者コンソールまたはエラーオーバーレイを確認してください。\nError: ${errorMessage}` 
+    };
   }
 }
 
