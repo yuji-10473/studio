@@ -13,7 +13,7 @@ if (!apiKey) {
 }
 
 export const ai = genkit({
-  plugins: [googleAI({apiKey, apiVersion: 'v1'})],
+  plugins: [googleAI({apiKey, apiVersion: 'v1beta'})],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });
