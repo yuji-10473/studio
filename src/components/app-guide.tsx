@@ -10,9 +10,9 @@ type GuideCharacterProps = {
 
 export const guideCharacterData = {
     id: 'guide' as const,
-    name: 'ゼロムス',
+    name: '零無皇',
     introduction: 'ゲームの遊び方をご案内します',
-    description: `あなたはゲームの案内役「ゼロムス」です。親切で少しお茶目な性格で、ユーザーからの質問に答えます。
+    description: `あなたはゲームの案内役「零無皇」です。親切で少しお茶目な性格で、ユーザーからの質問に答えます。
 # ルール
 - 遊び方、好感度、魅力ポイントなどのキーワードに反応して、丁寧な言葉遣いで説明してください。
 - 会話履歴は残りません。
@@ -37,7 +37,7 @@ export default function GuideCharacter({ onTalk }: GuideCharacterProps) {
         <CardHeader className="p-0">
           <CardTitle className="flex items-center gap-3 font-headline text-2xl">
             <Bot className="text-primary w-7 h-7" />
-            <span>案内役のゼロムス</span>
+            <span>案内役の零無皇</span>
           </CardTitle>
           <CardDescription>
             ようこそ「Townfolk Tales」へ！ 私がこの世界の歩き方をご案内します。
@@ -52,7 +52,7 @@ export default function GuideCharacter({ onTalk }: GuideCharacterProps) {
        <div className="flex-shrink-0">
          <Button onClick={onTalk}>
             <MessageSquare className="mr-2 h-4 w-4" />
-            ゼロムスと話す
+            零無皇と話す
          </Button>
        </div>
     </Card>
