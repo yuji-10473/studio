@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview This file exports the genkit instance.
  * It is used by the flows and actions to interact with the Genkit AI platform.
@@ -7,12 +8,19 @@ import {googleAI} from '@genkit-ai/google-genai';
 
 const apiKey = process.env.GEMINI_API_KEY;
 
+// Ensure the API key is available in the environment.
+if (!apiKey) {
+  // This will cause the server to fail to start if the key is not present,
+  // making it clear that the environment variable is missing.
+  throw new Error('The GEMINI_API_KEY environment variable is not set.');
+}
+
+
 // Always initialize the plugin. In production, the API key might be injected
 // via Secret Manager and not be available as a process.env variable during build.
-// Specifying v1beta is important for resolving newer model names like gemini-2.5-flash.
 const googleAiPlugin = googleAI({
-  apiKey: apiKey, // It's okay if apiKey is undefined here; it can be picked up from the environment later.
-  apiVersion: 'v1beta',
+  apiKey: apiKey,
+  apiVersion: 'v1',
 });
 
 export const ai = genkit({
