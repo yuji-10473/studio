@@ -7,7 +7,10 @@ html {
 }
 
 body {
-  background-image: url("/images/background.png");
+  /* 一時的なテスト用画像（猫の画像） */
+  background-image: url("https://placekitten.com/1000/1000");
+
+  /* 以下はそのまま */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
