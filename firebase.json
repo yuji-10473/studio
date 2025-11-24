@@ -8,9 +8,6 @@
       "firebase-debug.log",
       "firebase-debug.*.log",
       "functions"
-    ],
-    "secrets": [
-      "GEMINI_API_KEY"
     ]
   }
 }
