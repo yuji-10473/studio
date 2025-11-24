@@ -59,9 +59,6 @@ export default function GuideCharacter({ onTalk }: GuideCharacterProps) {
             <Bot className="text-primary w-7 h-7" />
             <span>案内役の零無皇</span>
           </CardTitle>
-          <CardDescription>
-            ようこそ、転生者たちの東京へ！ 私がこの世界の歩き方をご案内します。
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-0 mt-4">
             <p className="text-sm text-muted-foreground">
