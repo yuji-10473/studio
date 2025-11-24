@@ -1,6 +1,14 @@
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
+# The environment variables that are available to your application
+# at runtime.
+secretEnvironmentVariables:
+  - secret: GEMINI_API_KEY
+    # The environment variable that is available to your application
+    # at runtime, for example, process.env.API_KEY.
+    key: GEMINI_API_KEY
+
 runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
