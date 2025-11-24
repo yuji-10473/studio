@@ -258,13 +258,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const sendMessage = useCallback(async (text: string) => {
     if (!state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user || !state.userProfile) return;
 
-    if (!process.env.GEMINI_API_KEY) {
-      setErrorMessage(
-        'Gemini APIキーが設定されていません。.envファイルに GEMINI_API_KEY として設定してください。'
-      );
-      return;
-    }
-
     setErrorMessage('');
     const charId = state.activeConversation;
     const conversationHistoryRef = collection(firestore, 'users', user.uid, 'conversationHistory');
