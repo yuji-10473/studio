@@ -63,6 +63,7 @@ export type UserProfile = {
   charm: number;
   gameDate: number;
   enableTTS?: boolean; // Text-to-speech setting
+  bgmVolume?: number; // BGM volume setting (0 to 1)
   role?: UserRole; // Optional as it might not be on every user doc
   isAdmin?: boolean; // Kept for logic in use-user, but role is preferred
 }
@@ -81,6 +82,7 @@ export type GameState = {
   userRole: UserRole;
   isSpeaking: boolean;
   enableTTS: boolean; // Text-to-speech setting
+  bgmVolume: number;
 };
 
 export type GameContextType = GameState & {
@@ -93,6 +95,7 @@ export type GameContextType = GameState & {
   speak: (text: string, onEnd?: () => void) => void;
   cancelSpeech: () => void;
   setEnableTTS: (enabled: boolean) => void;
+  setBgmVolume: (volume: number) => void;
   unlockCharacter: (characterId: CharacterId) => Promise<void>;
   toggleCharacterLock: (characterId: string, isLocked: boolean) => Promise<{ success: boolean, message: string }>;
 };

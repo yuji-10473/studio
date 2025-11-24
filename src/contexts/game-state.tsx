@@ -48,6 +48,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     userRole: 'user', // Will be populated by useUser
     isSpeaking: false,
     enableTTS: false, // Default TTS to off
+    bgmVolume: 0.5, // Default BGM Volume
   };
 };
 
@@ -82,7 +83,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                     bio: '',
                     charm: 0,
                     gameDate: 1,
-                    enableTTS: false, // Default on creation
+                    enableTTS: false,
+                    bgmVolume: 0.5,
                 };
                 setDoc(userDocRef, newUserProfile);
             }
@@ -122,6 +124,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             batch.commit().catch(e => console.error("Failed to create new character states", e));
         }
 
+        const newBgmVolume = userProfile?.bgmVolume ?? 0.5;
+        if (bgmAudioRef.current) {
+            bgmAudioRef.current.volume = newBgmVolume;
+        }
+
         return {
             ...prevState,
             user,
@@ -131,7 +138,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             userProfile,
             charm: userProfile?.charm ?? 0,
             gameDate: userProfile?.gameDate ?? 1,
-            enableTTS: userProfile?.enableTTS ?? false, // Load TTS setting, default to false
+            enableTTS: userProfile?.enableTTS ?? false,
+            bgmVolume: newBgmVolume,
             loading: false,
         };
     });
@@ -231,9 +239,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         bgmAudioRef.current = new Audio('/music/bgm1.wav');
         bgmAudioRef.current.loop = true;
     }
+    bgmAudioRef.current.volume = state.bgmVolume;
     bgmAudioRef.current.play().catch(e => console.error("BGM play failed:", e));
 
-  }, [updateState]);
+  }, [updateState, state.bgmVolume]);
 
   const endConversation = useCallback(() => {
     cancelSpeech();
@@ -385,6 +394,25 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       updateState(prev => ({...prev, enableTTS: !enabled}));
     }
   }, [user, firestore, updateState, cancelSpeech, setErrorMessage]);
+  
+  const setBgmVolume = useCallback(async (volume: number) => {
+    if (!user || !firestore) return;
+    const finalVolume = Math.max(0, Math.min(1, volume));
+
+    updateState(prev => ({ ...prev, bgmVolume: finalVolume }));
+
+    if (bgmAudioRef.current) {
+        bgmAudioRef.current.volume = finalVolume;
+    }
+
+    const userDocRef = doc(firestore, 'users', user.uid);
+    try {
+        await updateDoc(userDocRef, { bgmVolume: finalVolume });
+    } catch (e) {
+        console.error("Failed to update BGM volume setting:", e);
+        setErrorMessage("音量設定の保存に失敗しました。");
+    }
+  }, [user, firestore, updateState, setErrorMessage]);
 
   const unlockCharacter = useCallback(async (characterId: CharacterId) => {
     if (!firestore || !user || !state.characters) return;
@@ -436,6 +464,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     speak,
     cancelSpeech,
     setEnableTTS,
+    setBgmVolume,
     unlockCharacter,
     toggleCharacterLock,
   };

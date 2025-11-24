@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,13 +33,24 @@ import { signOut } from 'firebase/auth';
 import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { Slider } from './ui/slider';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
 };
 
 export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
-  const { user, userRole, charm, gameDate, stayAtInn, setErrorMessage, enableTTS, setEnableTTS } = useGameState();
+  const { 
+    userRole, 
+    charm, 
+    gameDate, 
+    stayAtInn, 
+    setErrorMessage, 
+    enableTTS, 
+    setEnableTTS,
+    bgmVolume,
+    setBgmVolume 
+  } = useGameState();
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
@@ -104,6 +115,10 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     });
   }
 
+  const handleVolumeChange = (value: number[]) => {
+    setBgmVolume(value[0]);
+  }
+  
   const isAdmin = userRole === 'admin';
 
   return (
@@ -165,7 +180,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                   <Cog className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>設定</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -174,18 +189,33 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                     <span>プロフィール編集</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <div className="flex items-center justify-between w-full">
-                    <Label htmlFor="tts-toggle" className="flex items-center gap-2 cursor-pointer">
-                      <Volume2 className="h-4 w-4" />
-                      <span>音声読み上げ</span>
+                
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-2">
+                   <div className="flex items-center justify-between w-full">
+                      <Label htmlFor="tts-toggle" className="flex items-center gap-2 cursor-pointer">
+                        <Volume2 className="h-4 w-4" />
+                        <span>音声読み上げ</span>
+                      </Label>
+                      <Switch
+                        id="tts-toggle"
+                        checked={enableTTS}
+                        onCheckedChange={handleTtsToggle}
+                      />
+                    </div>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-3">
+                   <Label htmlFor="volume-slider" className="flex items-center gap-2 cursor-pointer">
+                      <Music className="h-4 w-4" />
+                      <span>BGM音量</span>
                     </Label>
-                    <Switch
-                      id="tts-toggle"
-                      checked={enableTTS}
-                      onCheckedChange={handleTtsToggle}
-                    />
-                  </div>
+                   <Slider
+                    id="volume-slider"
+                    defaultValue={[bgmVolume]}
+                    max={1}
+                    step={0.1}
+                    onValueChange={handleVolumeChange}
+                  />
                 </DropdownMenuItem>
 
                 {isAdmin && (
