@@ -62,8 +62,7 @@ const PROMPT_TEMPLATE = `あなたは、転生者たちが暮らす2025年の東
 
 # これまでの会話
 {{#conversationHistory}}
-{{#if (isUser role)}}プレイヤー{{else}}零無皇{{/if}}: {{content}}
-{{/if}}
+{{#isUser}}プレイヤー{{/isUser}}{{^isUser}}零無皇{{/isUser}}: {{content}}
 {{/conversationHistory}}
 
 プレイヤーからの新しいメッセージに、零無皇として応答してください。
@@ -90,9 +89,10 @@ const guideConversationFlow = ai.defineFlow(
 
     const view = {
       ...input,
-      isUser: function (role: string) {
-        return role === 'user';
-      },
+      conversationHistory: input.conversationHistory.map(msg => ({
+          ...msg,
+          isUser: msg.role === 'user',
+      })),
     };
     
     const prompt = mustache.render(PROMPT_TEMPLATE, view);
