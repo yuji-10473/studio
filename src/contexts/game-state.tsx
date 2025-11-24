@@ -68,6 +68,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechPingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Effect for creating user profile on first login
   useEffect(() => {
@@ -224,11 +225,25 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   const startConversation = useCallback((characterId: CharacterId) => {
     updateState(prev => ({ ...prev, activeConversation: characterId }));
+    
+    // Play BGM
+    if (!bgmAudioRef.current) {
+        bgmAudioRef.current = new Audio('/music/bgm1.wav');
+        bgmAudioRef.current.loop = true;
+    }
+    bgmAudioRef.current.play().catch(e => console.error("BGM play failed:", e));
+
   }, [updateState]);
 
   const endConversation = useCallback(() => {
     cancelSpeech();
     updateState(prev => ({ ...prev, activeConversation: null }));
+
+    // Pause and reset BGM
+    if (bgmAudioRef.current) {
+        bgmAudioRef.current.pause();
+        bgmAudioRef.current.currentTime = 0;
+    }
   }, [updateState, cancelSpeech]);
 
   const sendMessage = useCallback(async (text: string) => {

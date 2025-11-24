@@ -119,24 +119,8 @@ export default function ConversationModal({
 }: ConversationModalProps) {
   const { sendMessage, isAiResponding, userRole, isSpeaking } = useGameState();
   const [message, setMessage] = useState('');
-  const audioRef = useRef<HTMLAudioElement>(null);
   
   const isResponding = isAiResponding || isSpeaking;
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (isOpen) {
-      audio?.play().catch(error => {
-        // Autoplay can be blocked by the browser. We'll log the error.
-        console.warn("BGM autoplay was blocked by the browser:", error);
-      });
-    } else {
-      audio?.pause();
-      if (audio) {
-        audio.currentTime = 0;
-      }
-    }
-  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -198,7 +182,6 @@ export default function ConversationModal({
           </form>
         </DialogFooter>
 
-        <audio ref={audioRef} src="/music/bgm1.wav" loop />
       </DialogContent>
     </Dialog>
   );
