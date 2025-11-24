@@ -210,7 +210,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     
     utterance.onend = handleEnd;
     utterance.onerror = (event) => {
-        console.error("SpeechSynthesisUtterance.onerror", event);
         handleEnd(); // Ensure state is cleaned up on error
     };
 
