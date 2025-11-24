@@ -21,4 +21,4 @@ This is a NextJS starter in Firebase Studio.
 
 この手順により、新しいアイコンがキャラクター作成画面で選択できるようになります。
 
-Version. 0.9.7
+Version. 0.9.8
