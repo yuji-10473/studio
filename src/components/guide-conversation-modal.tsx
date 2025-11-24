@@ -43,12 +43,12 @@ export default function GuideConversationModal({
   useEffect(() => {
     if (isOpen) {
       setHistory([
-          { role: 'model', content: `こんにちは！ 私は案内役のナビーです。ゲームのことで分からないことがあれば、何でも聞いてくださいね。` }
+          { role: 'model', content: `こんにちは！ 私は案内役の${character.name}です。ゲームのことで分からないことがあれば、何でも聞いてくださいね。` }
       ]);
       setMessage('');
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, character.name]);
 
   useEffect(() => {
     if (viewportRef.current) {
