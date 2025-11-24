@@ -63,12 +63,12 @@ const PROMPT_TEMPLATE = `あなたはこれから恋愛シミュレーション�
 - ユーザーとの会話内容を評価し、ユーザーへの恋愛感情や好意がどれだけ増減したかを-1.0（悪化した）から1.0（とても良くなった）の範囲でスコア(loveScore)を付けてください。
 - 以下の会話履歴の続きを自然に生成してください。
 
-{{#conversationHistory.length}}
-# これまでの会話
 {{#conversationHistory}}
+# これまでの会話
+{{#.}}
 {{#isUser}}ユーザー ({{userProfile.displayName}}){{/isUser}}{{^isUser}}{{characterName}}{{/isUser}}: {{text}}
+{{/.}}
 {{/conversationHistory}}
-{{/conversationHistory.length}}
 
 ユーザーからのメッセージに応答してください。
 ---
@@ -101,7 +101,6 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
             ...msg,
             isUser: msg.sender === 'user',
         })),
-        "conversationHistory.length": input.conversationHistory.length > 0,
     };
     
     const prompt = mustache.render(PROMPT_TEMPLATE, view);
