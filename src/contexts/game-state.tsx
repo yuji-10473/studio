@@ -48,7 +48,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     userRole: 'user', // Will be populated by useUser
     isSpeaking: false,
     enableTTS: false, // Default TTS to off
-    bgmVolume: 0.5, // Default BGM Volume
+    bgmVolume: 0.25, // Default BGM Volume
   };
 };
 
@@ -84,7 +84,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                     charm: 0,
                     gameDate: 1,
                     enableTTS: false,
-                    bgmVolume: 0.5,
+                    bgmVolume: 0.25,
                 };
                 setDoc(userDocRef, newUserProfile);
             }
@@ -124,7 +124,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             batch.commit().catch(e => console.error("Failed to create new character states", e));
         }
 
-        const newBgmVolume = userProfile?.bgmVolume ?? 0.5;
+        const newBgmVolume = userProfile?.bgmVolume ?? 0.25;
         if (bgmAudioRef.current) {
             bgmAudioRef.current.volume = newBgmVolume;
         }
