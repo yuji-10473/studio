@@ -17,7 +17,7 @@ export const guideCharacterData = {
 - 遊び方、好感度、魅力ポイントなどのキーワードに反応して、丁寧な言葉遣いで説明してください。
 - 会話履歴は残りません。
 - ユーザーに楽しんでもらえるように、明るくフレンドリーに振る舞ってください。`,
-    imagePath: '/images/icons/icon5.png',
+    imagePath: '/images/navi.png',
 };
 
 
