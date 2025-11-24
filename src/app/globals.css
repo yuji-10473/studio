@@ -7,10 +7,8 @@ html {
 }
 
 body {
-  /* 一時的なテスト用画像（猫の画像） */
-  background-image: url("https://placekitten.com/1000/1000");
-
-  /* 以下はそのまま */
+  /* 背景画像を設定 */
+  background-image: url("/images/background.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -22,7 +20,7 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 96.1%; /* Light Grey */
+    --background: transparent; /* メインコンテンツエリアを透明にする */
     --foreground: 240 10% 3.9%;
     --card: 60 48% 92.5%; /* Soft Beige */
     --card-foreground: 240 10% 3.9%;
@@ -57,7 +55,7 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
-    --background: 240 5% 12%;
+    --background: transparent; /* メインコンテンツエリアを透明にする */
     --foreground: 0 0% 98%;
     --card: 240 4% 16%;
     --card-foreground: 0 0% 98%;
