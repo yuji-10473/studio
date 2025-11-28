@@ -1,6 +1,6 @@
 # E2Eテスト用 API仕様書
 
-このドキュメントは、E2E（エンドツーエンド）テストを実行する際に、このアプリケーションのバックエンド機能（Next.js Server Actions）を直接呼び出すためのAPI仕様を定義します。
+このドキュメントは、E2E（エンドツーエンド）テストを実行する際に、このアプリケーションのバックエンド機能（Next.js Server Actions）や認証機能を直接呼び出すためのAPI仕様を定義します。
 
 ## 概要
 
@@ -8,13 +8,68 @@
 
 ---
 
-## 認証について
+## 認証 (Authentication)
 
-すべてのAPI（サーバーアクション）は、ユーザーがFirebase Authenticationを通じて認証済みであることを前提としています。E2Eテストを実行する際は、事前にFirebaseの認証トークンを取得し、リクエストに含める必要があります。（ただし、現在の実装ではサーバーアクション側で直接トークンの検証は行っておらず、`useUser`フックなどを通じてサーバーサイドでユーザーセッションが利用可能であることが期待されます。）
+サーバーアクションを呼び出す前に、テストクライアントはFirebase Authenticationで認証を済ませ、IDトークンを取得する必要があります。
+
+### 1. ユーザー認証（IDトークン取得）
+
+メールアドレスとパスワードでログインし、Firebase IDトークンを取得します。このトークンは、認証が必要なサーバーアクションを呼び出す際に必要になる場合があります。
+
+- **エンドポイント (Firebase Auth REST API)**:
+  `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=[FIREBASE_WEB_API_KEY]`
+- **メソッド**: `POST`
+- **ヘッダー**:
+  ```json
+  {
+    "Content-Type": "application/json"
+  }
+  ```
+- **リクエストボディ**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "password123",
+    "returnSecureToken": true
+  }
+  ```
+- **成功時のレスポンス (抜粋)**:
+  ```json
+  {
+    "idToken": "eyJhbGciOiJ...", // このIDトークンを使用します
+    "email": "user@example.com",
+    "uid": "USER_ID",
+    "expiresIn": "3600"
+  }
+  ```
+- **注意**: `[FIREBASE_WEB_API_KEY]` は、Firebaseプロジェクトのウェブ設定から取得できるAPIキーに置き換えてください。
+
+### 2. ユーザー新規登録
+
+テスト用の新しいユーザーを作成します。
+
+- **エンドポイント (Firebase Auth REST API)**:
+  `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=[FIREBASE_WEB_API_KEY]`
+- **メソッド**: `POST`
+- **ヘッダー**:
+  ```json
+  {
+    "Content-Type": "application/json"
+  }
+  ```
+- **リクエストボディ**:
+  ```json
+  {
+    "email": "newuser@example.com",
+    "password": "new_password_123",
+    "returnSecureToken": true
+  }
+  ```
+- **成功時のレスポンス**: ユーザー認証と同様のレスポンスが返されます。
 
 ---
 
-## API仕様
+## サーバーアクション API仕様
 
 ### 1. ユーザープロフィール更新
 
@@ -125,4 +180,3 @@ AIを使用して新しいキャラクターを自動生成し、作成します
 - **入力 (`characterId`)**: `string`
 - **出力**:
   - `react-hot-toast` を通じてUIに通知が表示されます。
-
