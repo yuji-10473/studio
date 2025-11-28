@@ -55,10 +55,13 @@ export async function getAiResponse(
   let flowInput: any;
 
   // This check determines if the action was called from an external fetch (like our E2E test)
-  // or from within the application.
-  if (characterOrFormData instanceof FormData) {
+  // or from within the application. `instanceof FormData` can be unreliable across environments.
+  // A more robust check is to see if it has a method that FormData has, like `get`.
+  const isExternalCall = typeof (characterOrFormData as any).get === 'function';
+
+  if (isExternalCall) {
     // Called externally, parse FormData
-    const formData = characterOrFormData;
+    const formData = characterOrFormData as FormData;
     character = JSON.parse(formData.get('0') as string);
     flowInput = {
       characterName: character.name,
@@ -69,7 +72,7 @@ export async function getAiResponse(
     }
   } else {
     // Called internally
-    character = characterOrFormData;
+    character = characterOrFormData as Character;
     flowInput = {
       characterName: character.name,
       characterIntroduction: character.introduction,
