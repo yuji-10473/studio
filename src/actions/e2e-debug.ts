@@ -1,6 +1,7 @@
 
 'use server';
 
+import { headers } from 'next/headers';
 import type { Character, Message, UserProfile } from '@/lib/types';
 import { getAiResponse } from './chat';
 import { initializeApp, getApps, App } from 'firebase-admin/app';
@@ -15,10 +16,16 @@ import { getFirestore } from 'firebase-admin/firestore';
  */
 function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', message: string, context: Record<string, any> = {}) {
   const logEntry = { severity, message, ...context };
-  if (severity === 'ERROR' || severity === 'CRITICAL') {
-    console.error(JSON.stringify(logEntry));
+  // 本番環境ではCloud Loggingが自動でJSONをパースするため、JSON文字列として出力する
+  if (process.env.NODE_ENV === 'production') {
+      console.log(JSON.stringify(logEntry));
   } else {
-    console.log(JSON.stringify(logEntry));
+      // 開発環境では読みやすいようにオブジェクトのまま出力する
+      if (severity === 'ERROR' || severity === 'CRITICAL') {
+        console.error(logEntry);
+      } else {
+        console.log(logEntry);
+      }
   }
 }
 
@@ -41,6 +48,7 @@ function initializeAdminApp(): App {
  * @param userId The UID of the user to run the test as.
  */
 export async function runE2eTest(userId: string): Promise<{ success: boolean; message: string; data?: any }> {
+  headers(); // Opt out of caching
   log('INFO', 'E2E debug test started.', { userId, testName: 'runE2eTest' });
 
   // --- Test Data Setup ---
@@ -124,6 +132,7 @@ export async function runE2eTest(userId: string): Promise<{ success: boolean; me
  * A simple server action to test Cloud Logging.
  */
 export async function testCloudLogging(): Promise<{ success: boolean; message: string; }> {
+    headers(); // Opt out of caching
     const testData = { 
         testName: "testCloudLogging",
         timestamp: new Date().toISOString(),
@@ -141,12 +150,10 @@ export async function testCloudLogging(): Promise<{ success: boolean; message: s
         const errorMessage = error instanceof Error ? error.message : String(error);
         
         // Logging to Cloud Logging failed, so we use console.error as a fallback.
-        console.error(JSON.stringify({
-            severity: 'ERROR',
-            message: 'Failed to send test log to console.',
+        log('ERROR', 'Failed to send test log to console.', {
             error: errorMessage,
             ...testData
-        }));
+        });
 
         return {
             success: false,
