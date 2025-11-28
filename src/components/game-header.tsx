@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2 } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
-import { runE2eTest } from '@/actions/e2e-debug';
+import { runE2eTest, testCloudLogging } from '@/actions/e2e-debug';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -58,6 +58,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isTestingE2E, setIsTestingE2E] = React.useState(false);
+  const [isTestingLogging, setIsTestingLogging] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -119,6 +120,21 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
         });
     }
     setIsTestingE2E(false);
+  };
+
+  const handleTestLogging = async () => {
+    setIsTestingLogging(true);
+    setErrorMessage('');
+    const result = await testCloudLogging();
+    if (result.success) {
+      toast({
+        title: "Cloud Logging テスト",
+        description: result.message,
+      });
+    } else {
+      setErrorMessage(result.message);
+    }
+    setIsTestingLogging(false);
   };
 
   const handleLogout = async () => {
@@ -242,6 +258,14 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleTestLogging} disabled={isTestingLogging}>
+                      {isTestingLogging ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Cloud className="mr-2 h-4 w-4" />
+                      )}
+                      <span>Cloud Loggingテスト</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleTestKey} disabled={isTestingKey}>
                       {isTestingKey ? (
                         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />

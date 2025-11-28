@@ -3,8 +3,8 @@
 
 import type { Character, Message, UserProfile } from '@/lib/types';
 import { getAiResponse } from './chat';
-import { initializeFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 /**
  * Cloud Logging向けの構造化ログを出力します。
@@ -26,6 +26,17 @@ function log(severity: 'INFO' | 'ERROR', message: string, context: Record<string
     console.log(JSON.stringify(logEntry));
   }
 }
+
+// Admin SDKの初期化
+function initializeAdminApp(): App {
+    if (getApps().length > 0) {
+        return getApps()[0];
+    }
+    // App Hosting環境では引数なしで初期化することで、
+    // 環境に設定されたサービスアカウントが自動的に使用されます。
+    return initializeApp();
+}
+
 
 /**
  * Simulates an E2E test scenario by fetching a character and user profile,
@@ -52,11 +63,12 @@ export async function runE2eTest(userId: string): Promise<{ success: boolean; me
 
   // --- Step 1: Get User Profile (Simulating authenticated user) ---
   try {
-    const { firestore } = initializeFirebase();
-    const userDocRef = doc(firestore, 'users', userId);
-    const userDocSnap = await getDoc(userDocRef);
+    const adminApp = initializeAdminApp();
+    const firestore = getFirestore(adminApp);
+    const userDocRef = firestore.collection('users').doc(userId);
+    const userDocSnap = await userDocRef.get();
 
-    if (!userDocSnap.exists()) {
+    if (!userDocSnap.exists) {
       throw new Error(`User profile not found for userId: ${userId}`);
     }
     userProfile = userDocSnap.data() as UserProfile;
@@ -110,4 +122,39 @@ export async function runE2eTest(userId: string): Promise<{ success: boolean; me
         message: `[E2Eデバッグエラー] AI応答の取得中にエラーが発生しました:\n${errorMessage}` 
     };
   }
+}
+
+/**
+ * A simple server action to test Cloud Logging.
+ */
+export async function testCloudLogging(): Promise<{ success: boolean; message: string; }> {
+    const testData = { 
+        testName: "testCloudLogging",
+        timestamp: new Date().toISOString(),
+        randomNumber: Math.random() 
+    };
+    
+    try {
+        console.log(JSON.stringify({
+            severity: 'INFO',
+            message: 'This is a test log for Cloud Logging.',
+            ...testData
+        }));
+        return {
+            success: true,
+            message: `テストログをCloud Loggingに送信しました。 testName: ${testData.testName}, randomNumber: ${testData.randomNumber}`
+        };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(JSON.stringify({
+            severity: 'ERROR',
+            message: 'Failed to send test log to Cloud Logging.',
+            error: errorMessage,
+            ...testData
+        }));
+        return {
+            success: false,
+            message: `Cloud Loggingのテストに失敗しました: ${errorMessage}`
+        };
+    }
 }
