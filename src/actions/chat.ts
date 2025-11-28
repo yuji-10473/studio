@@ -60,15 +60,27 @@ export async function getAiResponse(
   const isExternalCall = typeof (characterOrFormData as any).get === 'function';
 
   if (isExternalCall) {
-    // Called externally, parse FormData
     const formData = characterOrFormData as FormData;
-    character = JSON.parse(formData.get('0') as string);
-    flowInput = {
-      characterName: character.name,
-      characterIntroduction: character.introduction,
-      userMessage: JSON.parse(formData.get('1') as string),
-      conversationHistory: JSON.parse(formData.get('2') as string),
-      userProfile: JSON.parse(formData.get('3') as string),
+    try {
+        const parsedCharacter = JSON.parse(formData.get('character') as string);
+        const parsedUserMessage = JSON.parse(formData.get('userMessage') as string);
+        const parsedConversationHistory = JSON.parse(formData.get('conversationHistory') as string);
+        const parsedUserProfile = JSON.parse(formData.get('userProfile') as string);
+        
+        character = parsedCharacter;
+
+        flowInput = {
+            characterName: character.name,
+            characterIntroduction: character.introduction,
+            userMessage: parsedUserMessage,
+            conversationHistory: parsedConversationHistory,
+            userProfile: parsedUserProfile,
+        };
+         log('INFO', 'getAiResponse called externally (E2E Test).', { receivedArgs: { character: true, userMessage: true, conversationHistory: true, userProfile: true } });
+    } catch(e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        log('ERROR', 'Failed to parse FormData in getAiResponse.', { error: error.message });
+        return { success: false, message: `Failed to parse arguments from FormData: ${error.message}` };
     }
   } else {
     // Called internally
@@ -80,9 +92,10 @@ export async function getAiResponse(
       conversationHistory: conversationHistory,
       userProfile: userProfile,
     };
+    log('INFO', 'getAiResponse called internally.');
   }
   
-  log('INFO', 'getAiResponse action called.', { requestPayload: flowInput });
+  log('DEBUG', 'getAiResponse action called.', { requestPayload: flowInput });
 
 
   const logData: any = {

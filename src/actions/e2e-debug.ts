@@ -336,8 +336,8 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
             // For Server Actions, the URL is the page path, not a dedicated API route.
             const chatUrl = new URL('/', baseUrl).toString(); 
             
-            const testCharacter: Character = {
-                 id: 'elara', name: 'エララ', introduction: '村の賢いパン屋。', description: '...', imagePath: '/images/icons/icon1.png'
+            const testCharacter: Character = { 
+                id: 'elara', name: 'エララ', introduction: '村の賢いパン屋。', description: '...', imagePath: '/images/icons/icon1.png' 
             };
             const testUserProfile: UserProfile = { 
                 id: 'test-user', displayName: 'Remote Tester', charm: 10, gameDate: 1, email: 'user@example.com' 
@@ -346,16 +346,18 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
             const testConversationHistory: Message[] = [];
 
             const form = new FormData();
-            form.append('0', JSON.stringify(testCharacter));
-            form.append('1', JSON.stringify(testUserMessage));
-            form.append('2', JSON.stringify(testConversationHistory));
-            form.append('3', JSON.stringify(testUserProfile));
+            form.append('character', JSON.stringify(testCharacter));
+            form.append('userMessage', JSON.stringify(testUserMessage));
+            form.append('conversationHistory', JSON.stringify(testConversationHistory));
+            form.append('userProfile', JSON.stringify(testUserProfile));
             
             log('DEBUG', 'Attempting remote chat action.', { url: chatUrl, actionId });
             
             const fetchHeaders = new Headers();
             fetchHeaders.append('Next-Action', actionId);
             fetchHeaders.append('Authorization', `Bearer ${idToken}`);
+            // Let node-fetch set the Content-Type header with the correct boundary
+            // fetchHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
 
             const chatRes = await fetch(chatUrl, {
                 method: 'POST',
