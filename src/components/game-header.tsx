@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
-import { runFirebaseAuthE2eTest, testCloudLogging } from '@/actions/e2e-debug';
+import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest } from '@/actions/e2e-debug';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -57,7 +57,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [isTestingE2E, setIsTestingE2E] = React.useState(false);
+  const [isTestingAuth, setIsTestingAuth] = React.useState(false);
+  const [isTestingChat, setIsTestingChat] = React.useState(false);
   const [isTestingLogging, setIsTestingLogging] = React.useState(false);
   const { toast } = useToast();
 
@@ -106,8 +107,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     setIsGenerating(false);
   }
 
-  const handleE2ETest = async () => {
-    setIsTestingE2E(true);
+  const handleAuthE2ETest = async () => {
+    setIsTestingAuth(true);
     setErrorMessage('');
     // IMPORTANT: Use credentials for a pre-existing test user.
     // Do not commit real user credentials to the repository.
@@ -118,11 +119,25 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     
     if (result.success) {
         toast({
-            title: "E2Eデバッグ成功",
+            title: "E2E認証テスト成功",
             description: result.message,
         });
     }
-    setIsTestingE2E(false);
+    setIsTestingAuth(false);
+  };
+
+  const handleChatE2ETest = async () => {
+    setIsTestingChat(true);
+    setErrorMessage('');
+    const result = await runChatE2eTest();
+    setErrorMessage(JSON.stringify(result, null, 2));
+    if (result.success) {
+        toast({
+            title: "E2E応答テスト成功",
+            description: result.message,
+        });
+    }
+    setIsTestingChat(false);
   };
 
   const handleTestLogging = async () => {
@@ -285,13 +300,21 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       )}
                       <span>Firestore書き込みテスト</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleE2ETest} disabled={isTestingE2E}>
-                      {isTestingE2E ? (
+                    <DropdownMenuItem onClick={handleAuthE2ETest} disabled={isTestingAuth}>
+                      {isTestingAuth ? (
                         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
                         <TestTube2 className="mr-2 h-4 w-4" />
                       )}
-                      <span>E2Eテストを実行</span>
+                      <span>E2E認証テスト</span>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem onClick={handleChatE2ETest} disabled={isTestingChat}>
+                      {isTestingChat ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                      )}
+                      <span>E2E応答テスト</span>
                     </DropdownMenuItem>
                   </>
                 )}

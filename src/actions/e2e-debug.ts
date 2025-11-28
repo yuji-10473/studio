@@ -4,6 +4,9 @@
 import { headers } from 'next/headers';
 import { initializeFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { getAiResponse } from '@/actions/chat';
+import type { Character, Message, UserProfile } from '@/lib/types';
+
 
 /**
  * 構造化ログをコンソールに出力します。
@@ -13,7 +16,13 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
  * @param context 追加情報
  */
 function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', message: string, context: Record<string, any> = {}) {
-  headers(); // Opt-out of caching
+  // Opt-out of caching. This is necessary for server actions that use this function.
+  try {
+    headers(); 
+  } catch (error) {
+    // This function might be called in contexts where headers() is not available.
+  }
+  
   const logEntry = { severity, message, ...context };
   // 本番環境ではCloud Loggingが自動でJSONをパースするため、JSON文字列として出力する
   if (process.env.NODE_ENV === 'production') {
@@ -67,6 +76,73 @@ export async function runFirebaseAuthE2eTest(email: string, password: string):Pr
     };
   }
 }
+
+/**
+ * E2E test for the AI chat response functionality.
+ * This function calls the `getAiResponse` server action with mock data.
+ */
+export async function runChatE2eTest(): Promise<{ success: boolean; message: string; data?: any }> {
+    headers(); // Opt-out of caching
+    log('INFO', 'Chat E2E test started.', { testName: 'runChatE2eTest' });
+
+    try {
+        // 1. Prepare mock data for the getAiResponse function
+        const testCharacter: Character = {
+            id: 'test-char-01',
+            name: 'エララ',
+            introduction: '村の賢いパン屋。',
+            description: 'あなたは村のパン屋、エララです。温かく、思いやりがあり、村人たちの相談相手になることが多いです。焼きたてのパンの話を交えながら、相手を元気づけてください。',
+            imagePath: '/images/icons/icon1.png',
+        };
+
+        const testUserProfile: UserProfile = {
+            id: 'test-user-01',
+            email: 'e2e-user@example.com',
+            displayName: 'E2Eテスター',
+            bio: 'これはE2Eテスト用の自己紹介です。',
+            charm: 100,
+            gameDate: 1,
+        };
+
+        const testUserMessage = 'こんにちは！いい天気ですね。';
+
+        const testConversationHistory: Message[] = [
+            { sender: 'user', text: '初めまして！', characterId: 'test-char-01' },
+            { sender: 'test-char-01', text: 'あら、こんにちは！パンのいい匂いがするでしょう？', characterId: 'test-char-01' },
+        ];
+
+        log('INFO', 'Calling getAiResponse with test data.', { request: { testCharacter, testUserProfile, testUserMessage, testConversationHistory }});
+
+        // 2. Call the actual server action
+        const result = await getAiResponse(
+            testCharacter,
+            testUserMessage,
+            testConversationHistory,
+            testUserProfile
+        );
+
+        log('INFO', 'Chat E2E test finished.', { response: result });
+
+        if (result.success) {
+            return {
+                success: true,
+                message: '[E2E成功] AI応答の取得に成功しました。',
+                data: result,
+            };
+        } else {
+            throw new Error(result.message);
+        }
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log('ERROR', 'Chat E2E test failed.', { error: errorMessage });
+        return { 
+            success: false, 
+            message: `[E2Eエラー] AI応答の取得に失敗しました:\n${errorMessage}` 
+        };
+    }
+}
+
 
 /**
  * A simple server action to test Cloud Logging.
