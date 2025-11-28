@@ -7,25 +7,21 @@ import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 /**
- * Cloud Logging向けの構造化ログを出力します。
- * @param severity ログの重要度 (INFO, ERRORなど)
+ * 構造化ログをコンソールに出力します。
+ * 本番環境（App Hosting）では、このコンソール出力が自動的にCloud Loggingに収集されます。
+ * @param severity ログの重要度
  * @param message ログメッセージ
  * @param context 追加情報
  */
-function log(severity: 'INFO' | 'ERROR', message: string, context: Record<string, any> = {}) {
-  const logEntry = {
-    severity,
-    message,
-    ...context,
-    timestamp: new Date().toISOString(),
-  };
-  // console.log/errorは自動的にCloud Loggingに転送されます
-  if (severity === 'ERROR') {
+function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', message: string, context: Record<string, any> = {}) {
+  const logEntry = { severity, message, ...context };
+  if (severity === 'ERROR' || severity === 'CRITICAL') {
     console.error(JSON.stringify(logEntry));
   } else {
     console.log(JSON.stringify(logEntry));
   }
 }
+
 
 // Admin SDKの初期化
 function initializeAdminApp(): App {
@@ -131,30 +127,30 @@ export async function testCloudLogging(): Promise<{ success: boolean; message: s
     const testData = { 
         testName: "testCloudLogging",
         timestamp: new Date().toISOString(),
-        randomNumber: Math.random() 
+        randomNumber: Math.random(),
+        from: process.env.NODE_ENV === 'development' ? 'DEVELOPMENT_SERVER' : 'PRODUCTION_SERVER'
     };
     
     try {
-        console.log(JSON.stringify({
-            severity: 'INFO',
-            message: 'This is a test log for Cloud Logging.',
-            ...testData
-        }));
+        log('INFO', 'This is a test log for Cloud Logging.', testData);
         return {
             success: true,
-            message: `テストログをCloud Loggingに送信しました。 testName: ${testData.testName}, randomNumber: ${testData.randomNumber}`
+            message: `テストログをコンソールに出力しました。本番環境ではCloud Loggingに転送されます。 testName: ${testData.testName}, from: ${testData.from}`
         };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        // Logging to Cloud Logging failed, so we use console.error as a fallback.
         console.error(JSON.stringify({
             severity: 'ERROR',
-            message: 'Failed to send test log to Cloud Logging.',
+            message: 'Failed to send test log to console.',
             error: errorMessage,
             ...testData
         }));
+
         return {
             success: false,
-            message: `Cloud Loggingのテストに失敗しました: ${errorMessage}`
+            message: `コンソールへのテストログ出力に失敗しました: ${errorMessage}`
         };
     }
 }
