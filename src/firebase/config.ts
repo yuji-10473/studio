@@ -1,6 +1,7 @@
+
 // Your web app's Firebase configuration
 export const firebaseConfig = {
-  apiKey: "AIzaSyALteYUXTJRtHOy08ovT-dX8T3Ap04yBXI",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_WEB_API_KEY,
   authDomain: "studio-3901474762-72cde.firebaseapp.com",
   projectId: "studio-3901474762-72cde",
   storageBucket: "studio-3901474762-72cde.firebasestorage.app",

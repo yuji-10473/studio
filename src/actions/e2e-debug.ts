@@ -381,5 +381,3 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
         };
     }
 }
-
-    
