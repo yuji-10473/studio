@@ -224,3 +224,66 @@ export async function runGuideChatE2eTest(): Promise<{ success: boolean; message
         };
     }
 }
+
+
+/**
+ * Runs a comprehensive suite of E2E tests in sequence.
+ */
+export async function runComprehensiveE2eTest(): Promise<{ success: boolean; message: string; results: any }> {
+    headers(); // Opt-out of caching
+    log('INFO', 'Comprehensive E2E test suite started.', { testName: 'runComprehensiveE2eTest' });
+
+    const results = {
+        authTest: {},
+        chatTest: {},
+        guideTest: {},
+    };
+    let overallSuccess = true;
+
+    try {
+        // 1. Auth Test
+        log('INFO', 'Running Auth Test...');
+        results.authTest = await runFirebaseAuthE2eTest('user@example.com', 'password123');
+        if (!(results.authTest as any).success) {
+            overallSuccess = false;
+        }
+        log('INFO', 'Auth Test finished.');
+
+        // 2. Chat Test
+        log('INFO', 'Running Chat Test...');
+        results.chatTest = await runChatE2eTest();
+        if (!(results.chatTest as any).success) {
+            overallSuccess = false;
+        }
+        log('INFO', 'Chat Test finished.');
+
+        // 3. Guide Chat Test
+        log('INFO', 'Running Guide Chat Test...');
+        results.guideTest = await runGuideChatE2eTest();
+        if (!(results.guideTest as any).success) {
+            overallSuccess = false;
+        }
+        log('INFO', 'Guide Chat Test finished.');
+
+        const finalMessage = overallSuccess
+            ? '[総合E2E成功] すべてのテストが正常に完了しました。'
+            : '[総合E2E失敗] いくつかのテストに失敗しました。詳細は結果を確認してください。';
+
+        log('INFO', 'Comprehensive E2E test suite finished.', { overallSuccess });
+        
+        return {
+            success: overallSuccess,
+            message: finalMessage,
+            results,
+        };
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log('CRITICAL', 'Comprehensive E2E test suite failed with an unhandled exception.', { error: errorMessage });
+        return {
+            success: false,
+            message: `[E2Eクリティカルエラー] 総合テストの実行中に予期せぬエラーが発生しました:\n${errorMessage}`,
+            results,
+        };
+    }
+}

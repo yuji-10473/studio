@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot, FlaskConical } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
-import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest, runGuideChatE2eTest } from '@/actions/e2e-debug';
+import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest, runGuideChatE2eTest, runComprehensiveE2eTest } from '@/actions/e2e-debug';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -61,6 +61,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingChat, setIsTestingChat] = React.useState(false);
   const [isTestingLogging, setIsTestingLogging] = React.useState(false);
   const [isTestingGuideChat, setIsTestingGuideChat] = React.useState(false);
+  const [isTestingComprehensive, setIsTestingComprehensive] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -168,6 +169,26 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
       setErrorMessage(result.message);
     }
     setIsTestingLogging(false);
+  };
+
+  const handleComprehensiveTest = async () => {
+    setIsTestingComprehensive(true);
+    setErrorMessage('');
+    const result = await runComprehensiveE2eTest();
+    setErrorMessage(JSON.stringify(result, null, 2));
+    if (result.success) {
+      toast({
+        title: '総合E2Eテスト成功',
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: '総合E2Eテスト失敗',
+        description: result.message,
+        variant: 'destructive',
+      });
+    }
+    setIsTestingComprehensive(false);
   };
 
   const handleLogout = async () => {
@@ -290,6 +311,15 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                     <DropdownMenuItem onClick={handleComprehensiveTest} disabled={isTestingComprehensive}>
+                      {isTestingComprehensive ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <FlaskConical className="mr-2 h-4 w-4" />
+                      )}
+                      <span>総合E2Eテストを実行</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleTestLogging} disabled={isTestingLogging}>
                       {isTestingLogging ? (
