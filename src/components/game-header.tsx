@@ -34,7 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
-import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest, runGuideChatE2eTest, runComprehensiveE2eTest } from '@/actions/e2e-debug';
+import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest, runGuideChatE2eTest, runComprehensiveE2eTest, runRemoteApiTest } from '@/actions/e2e-debug';
 import { Input } from './ui/input';
 
 type GameHeaderProps = {
@@ -64,7 +64,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingGuideChat, setIsTestingGuideChat] = React.useState(false);
   const [isTestingComprehensive, setIsTestingComprehensive] = React.useState(false);
   const [isTestingRemoteApi, setIsTestingRemoteApi] = React.useState(false);
-  const [remoteApiUrl, setRemoteApiUrl] = React.useState('');
+  const [remoteApiUrl, setRemoteApiUrl] = React.useState('http://localhost:9002');
 
   const { toast } = useToast();
 
@@ -195,6 +195,30 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     setIsTestingComprehensive(false);
   };
 
+  const handleRemoteApiTest = async (testType: 'auth' | 'chat') => {
+    if (!remoteApiUrl) {
+      setErrorMessage('外部APIテストのURLが入力されていません。');
+      return;
+    }
+    setIsTestingRemoteApi(true);
+    setErrorMessage('');
+    const result = await runRemoteApiTest(remoteApiUrl, testType);
+    setErrorMessage(JSON.stringify(result, null, 2));
+     if (result.success) {
+      toast({
+        title: '外部APIテスト成功',
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: '外部APIテスト失敗',
+        description: result.message,
+        variant: 'destructive',
+      });
+    }
+    setIsTestingRemoteApi(false);
+  }
+
   const handleLogout = async () => {
     if (!auth) return;
     await signOut(auth);
@@ -324,6 +348,31 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       <span>総合E2Eテストを実行</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuLabel>外部APIテスト</DropdownMenuLabel>
+                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-3">
+                       <Label htmlFor="remote-api-url" className="flex items-center gap-2 cursor-pointer text-xs">
+                          テスト対象URL
+                        </Label>
+                       <Input 
+                         id="remote-api-url"
+                         value={remoteApiUrl}
+                         onChange={(e) => setRemoteApiUrl(e.target.value)}
+                         placeholder="https://your-app-url.com"
+                         className="h-8"
+                       />
+                       <div className='flex gap-2 w-full mt-2'>
+                          <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('auth')} disabled={isTestingRemoteApi}>
+                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin' /> : <TestTube2 />}
+                            認証
+                          </Button>
+                           <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('chat')} disabled={isTestingRemoteApi}>
+                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin' /> : <MessageCircle />}
+                            応答
+                          </Button>
+                       </div>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
                     <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
                     <DropdownMenuItem onClick={handleTestLogging} disabled={isTestingLogging}>
                       {isTestingLogging ? (
@@ -390,3 +439,5 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     </header>
   );
 }
+
+    

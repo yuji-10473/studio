@@ -288,3 +288,98 @@ export async function runComprehensiveE2eTest(): Promise<{ success: boolean; mes
         };
     }
 }
+
+/**
+ * Runs an E2E test against a remote API endpoint.
+ * @param baseUrl The base URL of the remote API.
+ * @param testType The type of test to run ('auth' or 'chat').
+ */
+export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat'): Promise<{ success: boolean; message: string; data?: any }> {
+    headers(); // Opt-out of caching
+    const webApiKey = process.env.NEXT_PUBLIC_FIREBASE_WEB_API_KEY;
+
+    if (!webApiKey) {
+        const message = 'NEXT_PUBLIC_FIREBASE_WEB_API_KEY is not set in environment variables.';
+        log('ERROR', message, { testName: 'runRemoteApiTest' });
+        return { success: false, message };
+    }
+    
+    log('INFO', 'Remote API test started.', { testName: 'runRemoteApiTest', baseUrl, testType });
+
+    try {
+        const authUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${webApiKey}`;
+        const authBody = {
+            email: 'user@example.com',
+            password: 'password123',
+            returnSecureToken: true,
+        };
+
+        const authRes = await fetch(authUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(authBody),
+        });
+
+        const authData = await authRes.json() as any;
+
+        if (!authRes.ok || !authData.idToken) {
+            throw new Error(`Remote auth failed: ${authData?.error?.message || 'Unknown error'}`);
+        }
+        
+        const idToken = authData.idToken;
+
+        if (testType === 'auth') {
+            return {
+                success: true,
+                message: `[リモートテスト成功] 認証に成功しました。UID: ${authData.localId}`,
+                data: { uid: authData.localId },
+            };
+        }
+
+        if (testType === 'chat') {
+            // NOTE: This assumes the target app exposes a standard /api/chat endpoint.
+            // Our current app uses Server Actions, so this part won't work without
+            // a dedicated REST API endpoint on the target. This is a conceptual implementation.
+            const chatUrl = `${baseUrl}/api/chat`; // This endpoint does not exist yet.
+            const testPayload = {
+                 character: { id: 'elara', name: 'エララ', introduction: '村の賢いパン屋。', description: '...', imagePath: '...' },
+                 userMessage: 'こんにちは',
+                 conversationHistory: [],
+                 userProfile: { id: 'test-user', displayName: 'Remote Tester', charm: 10, gameDate: 1, email: 'user@example.com' }
+            };
+
+            const chatRes = await fetch(chatUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`,
+                },
+                body: JSON.stringify(testPayload),
+            });
+            
+            const chatData = await chatRes.json();
+
+            if (!chatRes.ok) {
+                 throw new Error(`Remote chat API failed: ${JSON.stringify(chatData)}`);
+            }
+
+            return {
+                success: true,
+                message: '[リモートテスト成功] AI応答の取得に成功しました。',
+                data: chatData,
+            };
+        }
+
+        throw new Error(`Unknown remote test type: ${testType}`);
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log('ERROR', 'Remote API test failed.', { error: errorMessage });
+        return { 
+            success: false, 
+            message: `[リモートテストエラー] 外部APIのテストに失敗しました:\n${errorMessage}` 
+        };
+    }
+}
+
+    
