@@ -4,8 +4,8 @@
 import { headers } from 'next/headers';
 import type { Character, Message, UserProfile } from '@/lib/types';
 import { getAiResponse } from './chat';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+// import { initializeApp, getApps, App } from 'firebase-admin/app';
+// import { getFirestore } from 'firebase-admin/firestore';
 
 /**
  * 構造化ログをコンソールに出力します。
@@ -30,15 +30,15 @@ function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', mess
 }
 
 
-// Admin SDKの初期化
-function initializeAdminApp(): App {
-    if (getApps().length > 0) {
-        return getApps()[0];
-    }
-    // App Hosting環境では引数なしで初期化することで、
-    // 環境に設定されたサービスアカウントが自動的に使用されます。
-    return initializeApp();
-}
+// // Admin SDKの初期化
+// function initializeAdminApp(): App {
+//     if (getApps().length > 0) {
+//         return getApps()[0];
+//     }
+//     // App Hosting環境では引数なしで初期化することで、
+//     // 環境に設定されたサービスアカウントが自動的に使用されます。
+//     return initializeApp();
+// }
 
 
 /**
@@ -49,6 +49,21 @@ function initializeAdminApp(): App {
  */
 export async function runE2eTest(userId: string): Promise<{ success: boolean; message: string; data?: any }> {
   headers(); // Opt out of caching
+  log('INFO', '[Temporary Fix] E2E debug test started. Firestore logic is temporarily disabled for debugging.', { userId, testName: 'runE2eTest' });
+
+  // --- Firestore access is temporarily disabled to isolate logging issues.
+  const message = '[Temporary Fix] E2E test action was called, but Firestore logic is currently disabled for debugging. Check Cloud Logging for this message.';
+  
+  log('INFO', message, { userId });
+
+  return { 
+    success: true, 
+    message: message
+  };
+
+  // The original logic is commented out below for now.
+
+  /*
   log('INFO', 'E2E debug test started.', { userId, testName: 'runE2eTest' });
 
   // --- Test Data Setup ---
@@ -126,6 +141,7 @@ export async function runE2eTest(userId: string): Promise<{ success: boolean; me
         message: `[E2Eデバッグエラー] AI応答の取得中にエラーが発生しました:\n${errorMessage}` 
     };
   }
+  */
 }
 
 /**
@@ -149,7 +165,6 @@ export async function testCloudLogging(): Promise<{ success: boolean; message: s
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         
-        // Logging to Cloud Logging failed, so we use console.error as a fallback.
         log('ERROR', 'Failed to send test log to console.', {
             error: errorMessage,
             ...testData
