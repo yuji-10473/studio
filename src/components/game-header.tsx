@@ -349,8 +349,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>外部APIテスト</DropdownMenuLabel>
-                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex flex-col items-start gap-3">
-                       <Label htmlFor="remote-api-url" className="flex items-center gap-2 cursor-pointer text-xs">
+                     <div className="px-2 py-1.5 text-sm outline-none">
+                       <Label htmlFor="remote-api-url" className="flex items-center gap-2 cursor-pointer text-xs mb-2">
                           テスト対象URL
                         </Label>
                        <Input 
@@ -362,15 +362,15 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                        />
                        <div className='flex gap-2 w-full mt-2'>
                           <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('auth')} disabled={isTestingRemoteApi}>
-                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin' /> : <TestTube2 />}
+                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin mr-2' /> : <Wifi className="mr-2" />}
                             認証
                           </Button>
                            <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('chat')} disabled={isTestingRemoteApi}>
-                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin' /> : <MessageCircle />}
+                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin mr-2' /> : <MessageCircle className="mr-2" />}
                             応答
                           </Button>
                        </div>
-                    </DropdownMenuItem>
+                    </div>
 
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
@@ -439,5 +439,3 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     </header>
   );
 }
-
-    
