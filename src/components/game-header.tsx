@@ -64,8 +64,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingGuideChat, setIsTestingGuideChat] = React.useState(false);
   const [isTestingComprehensive, setIsTestingComprehensive] = React.useState(false);
   const [isTestingRemoteApi, setIsTestingRemoteApi] = React.useState(false);
-  const [remoteApiUrl, setRemoteApiUrl] = React.useState('http://localhost:9002');
-  const [actionId, setActionId] = React.useState('');
+  const [remoteApiUrl, setRemoteApiUrl] = React.useState('https://studio-3901474762-72cde.web.app/');
+  const [actionId, setActionId] = React.useState('783d6750f15bac1ba5a8d298cf2cf868857faefce8');
 
   const { toast } = useToast();
 
