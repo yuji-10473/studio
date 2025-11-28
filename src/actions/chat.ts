@@ -47,7 +47,8 @@ export async function getAiResponse(
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
   const headerList = headers();
-  const actionId = headerList.get('x-action-id') || headerList.get('Next-Action');
+  // Server Action IDの取得を 'next-action' ヘッダーに一本化
+  const actionId = headerList.get('next-action');
 
   const flowInput = {
     characterName: character.name,
