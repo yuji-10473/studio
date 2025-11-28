@@ -4,7 +4,7 @@
 import { headers } from 'next/headers';
 import { initializeFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { getAiResponse } from '@/actions/chat';
+import { getAiResponse, getGuideResponse } from '@/actions/chat';
 import type { Character, Message, UserProfile } from '@/lib/types';
 
 
@@ -173,6 +173,54 @@ export async function testCloudLogging(): Promise<{ success: boolean; message: s
         return {
             success: false,
             message: `コンソールへのテストログ出力に失敗しました: ${errorMessage}`
+        };
+    }
+}
+
+
+/**
+ * E2E test for the Guide AI chat response functionality.
+ * This function calls the `getGuideResponse` server action with mock data.
+ */
+export async function runGuideChatE2eTest(): Promise<{ success: boolean; message: string; data?: any }> {
+    headers(); // Opt-out of caching
+    log('INFO', 'Guide Chat E2E test started.', { testName: 'runGuideChatE2eTest' });
+
+    try {
+        // 1. Prepare mock data for the getGuideResponse function
+        const testUserMessage = '魅力ポイントって何？';
+
+        const testConversationHistory: { role: 'user' | 'model'; content: string }[] = [
+            { role: 'user', content: 'こんにちは！' },
+            { role: 'model', content: 'こんにちは！ 私は案内役の零無皇です。ゲームのことで分からないことがあれば、何でも聞いてくださいね。' },
+        ];
+
+        log('INFO', 'Calling getGuideResponse with test data.', { request: { testUserMessage, testConversationHistory }});
+
+        // 2. Call the actual server action
+        const result = await getGuideResponse(
+            testUserMessage,
+            testConversationHistory
+        );
+
+        log('INFO', 'Guide Chat E2E test finished.', { response: result });
+
+        if (result.success) {
+            return {
+                success: true,
+                message: '[E2E成功] 案内役のAI応答取得に成功しました。',
+                data: result,
+            };
+        } else {
+            throw new Error(result.message);
+        }
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log('ERROR', 'Guide Chat E2E test failed.', { error: errorMessage });
+        return { 
+            success: false, 
+            message: `[E2Eエラー] 案内役のAI応答取得に失敗しました:\n${errorMessage}` 
         };
     }
 }

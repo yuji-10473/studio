@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
-import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest } from '@/actions/e2e-debug';
+import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest, runGuideChatE2eTest } from '@/actions/e2e-debug';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -60,6 +60,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingAuth, setIsTestingAuth] = React.useState(false);
   const [isTestingChat, setIsTestingChat] = React.useState(false);
   const [isTestingLogging, setIsTestingLogging] = React.useState(false);
+  const [isTestingGuideChat, setIsTestingGuideChat] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -138,6 +139,20 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
         });
     }
     setIsTestingChat(false);
+  };
+
+  const handleGuideChatE2ETest = async () => {
+    setIsTestingGuideChat(true);
+    setErrorMessage('');
+    const result = await runGuideChatE2eTest();
+    setErrorMessage(JSON.stringify(result, null, 2));
+    if (result.success) {
+        toast({
+            title: "E2E案内役応答テスト成功",
+            description: result.message,
+        });
+    }
+    setIsTestingGuideChat(false);
   };
 
   const handleTestLogging = async () => {
@@ -314,7 +329,15 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       ) : (
                         <MessageCircle className="mr-2 h-4 w-4" />
                       )}
-                      <span>E2E応答テスト</span>
+                      <span>AI応答テスト</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleGuideChatE2ETest} disabled={isTestingGuideChat}>
+                      {isTestingGuideChat ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Bot className="mr-2 h-4 w-4" />
+                      )}
+                      <span>案内役応答テスト</span>
                     </DropdownMenuItem>
                   </>
                 )}
