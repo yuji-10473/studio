@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
+import { runE2eTest } from '@/actions/e2e-debug';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -41,6 +42,7 @@ type GameHeaderProps = {
 
 export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const { 
+    user,
     userRole, 
     charm, 
     gameDate, 
@@ -55,6 +57,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingKey, setIsTestingKey] = React.useState(false);
   const [isTestingFirestore, setIsTestingFirestore] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isTestingE2E, setIsTestingE2E] = React.useState(false);
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -101,6 +104,22 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     }
     setIsGenerating(false);
   }
+
+  const handleE2ETest = async () => {
+    if (!user) return;
+    setIsTestingE2E(true);
+    setErrorMessage('');
+    const result = await runE2eTest(user.uid);
+    // Display the full result in the error message log for debugging
+    setErrorMessage(JSON.stringify(result, null, 2));
+    if (result.success) {
+        toast({
+            title: "E2Eデバッグ成功",
+            description: result.message,
+        });
+    }
+    setIsTestingE2E(false);
+  };
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -238,6 +257,14 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                         <Database className="mr-2 h-4 w-4" />
                       )}
                       <span>Firestore書き込みテスト</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleE2ETest} disabled={isTestingE2E}>
+                      {isTestingE2E ? (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <TestTube2 className="mr-2 h-4 w-4" />
+                      )}
+                      <span>E2Eテストを実行</span>
                     </DropdownMenuItem>
                   </>
                 )}
