@@ -18,14 +18,14 @@ export default function Footer() {
             <Link href="/privacy" className="hover:text-foreground transition-colors">
               プライバシーポリシー
             </Link>
-            <Link href="/contact" className="hover:text-foreground transition-colors">
+            <Link href="/contact" className="hovertext-foreground transition-colors">
               運営者情報
             </Link>
           </nav>
           <p className="mt-4 sm:mt-0 sm:ml-4 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4 border-muted">
             &copy; {new Date().getFullYear()} Townfolk Tales
           </p>
-          <span className="mt-2 sm:mt-0 sm:ml-4">Ver 0.9.9</span>
+          <span className="mt-2 sm:mt-0 sm:ml-4">Ver 0.9.11</span>
         </div>
       </div>
     </footer>
