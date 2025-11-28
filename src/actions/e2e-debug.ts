@@ -2,7 +2,8 @@
 'use server';
 
 import { headers } from 'next/headers';
-import fetch from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
+import FormData from 'form-data';
 import { initializeFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getAiResponse, getGuideResponse } from '@/actions/chat';
@@ -344,23 +345,22 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
             const testUserMessage = 'こんにちは';
             const testConversationHistory: Message[] = [];
 
-            // Server actions expect urlencoded form data for arguments.
-            const body = new URLSearchParams();
-            body.append('0', JSON.stringify(testCharacter));
-            body.append('1', JSON.stringify(testUserMessage));
-            body.append('2', JSON.stringify(testConversationHistory));
-            body.append('3', JSON.stringify(testUserProfile));
+            const form = new FormData();
+            form.append('0', JSON.stringify(testCharacter));
+            form.append('1', JSON.stringify(testUserMessage));
+            form.append('2', JSON.stringify(testConversationHistory));
+            form.append('3', JSON.stringify(testUserProfile));
             
-            log('DEBUG', 'Attempting remote chat action.', { url: chatUrl, actionId, body: body.toString() });
+            log('DEBUG', 'Attempting remote chat action.', { url: chatUrl, actionId });
+            
+            const fetchHeaders = new Headers();
+            fetchHeaders.append('Next-Action', actionId);
+            fetchHeaders.append('Authorization', `Bearer ${idToken}`);
 
             const chatRes = await fetch(chatUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Next-Action': actionId,
-                    'Authorization': `Bearer ${idToken}`,
-                },
-                body: body.toString(),
+                headers: fetchHeaders,
+                body: form,
             });
 
             log('DEBUG', 'Remote chat action response received.', { status: chatRes.status, headers: Object.fromEntries(chatRes.headers.entries()) });
