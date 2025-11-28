@@ -1,6 +1,10 @@
 # E2E (End-to-End) テストのセットアップガイド
 
-このドキュメントでは、Playwright を使用して、この Next.js アプリケーションのエンドツーエンドテストをセットアップ、作成、実行する方法について説明します。
+このドキュメントでは、この Next.js アプリケーションのエンドツーエンドテストをセットアップ、作成、実行する方法について説明します。
+
+アプリケーションのバックエンドはNext.jsのサーバーアクションとして実装されています。テストは、これらのアクションを直接呼び出すか、UIを操作するテストフレームワーク（Playwrightなど）を使用して行います。
+
+各アクション（API）の詳しい仕様については、`E2E_API_SPEC.md` を参照してください。
 
 ## なぜE2Eテストか？
 
@@ -8,113 +12,108 @@ E2Eテストは、アプリケーション全体を実際のユーザーのよ�
 
 ---
 
-## ステップ1: Playwright のインストール
+## テスト戦略
 
-まず、開発環境にPlaywrightをインストールします。以下のコマンドをターミナルで実行してください。
+### 1. UIベースのテスト (Playwrightなど)
 
-```bash
-npm init playwright@latest
-```
+実際のユーザー操作を最も正確にシミュレートする方法です。
 
-このコマンドを実行すると、対話形式で以下の質問が表示されます。
+- **フレームワーク**: Playwright, Cypressなど
+- **長所**:
+    - ユーザーが実際に目にするUIの崩れや、操作できないボタンなどを検出できる。
+    - フロントエンドとバックエンドの結合を含めた完全なテストが可能。
+- **短所**:
+    - テストの実行が遅い。
+    - UIの変更に弱く、メンテナンスコストがかかる。
 
-1.  **"Do you want to use TypeScript or JavaScript?"**
-    *   `TypeScript` を選択してください。
-2.  **"Where to put your end-to-end tests?"**
-    *   デフォルトの `tests` のままで構いません。
-3.  **"Add a GitHub Actions workflow?"**
-    *   CI/CDをすぐに設定する場合は `true`、後で設定する場合は `false` を選択します。
-4.  **"Install Playwright browsers?"**
-    *   `true` を選択して、テストに必要なブラウザ（Chromium, Firefox, WebKit）をインストールします。
+#### セットアップ例 (Playwright)
 
-これにより、必要なパッケージがインストールされ、設定ファイル (`playwright.config.ts`) とサンプルテストが作成されます。
+1.  **Playwright のインストール**:
+    ```bash
+    npm init playwright@latest
+    ```
+    質問には `TypeScript` を選択し、デフォルト設定に従います。
 
----
+2.  **設定ファイルの更新 (`playwright.config.ts`)**:
+    開発サーバーが自動で起動するように `webServer` を設定します。
 
-## ステップ2: Playwright の設定
+    ```typescript
+    // playwright.config.ts
+    import { defineConfig } from '@playwright/test';
 
-`playwright.config.ts` ファイルを開き、`webServer` の設定を調整して、テスト実行前にNext.jsの開発サーバーが自動的に起動するようにします。
+    export default defineConfig({
+      // ...
+      webServer: {
+        command: 'npm run dev',
+        url: 'http://127.0.0.1:9002', // package.jsonのポートと合わせる
+        reuseExistingServer: !process.env.CI,
+      },
+      use: {
+        baseURL: 'http://127.0.0.1:9002',
+      },
+      // ...
+    });
+    ```
+
+3.  **テストの作成 (`tests/example.spec.ts`)**:
+    ログイン画面が表示されることを確認するテスト。
+
+    ```typescript
+    import { test, expect } from '@playwright/test';
+
+    test('login page is displayed', async ({ page }) => {
+      await page.goto('/');
+      const welcomeMessage = page.getByText('Townfolk Talesへようこそ');
+      await expect(welcomeMessage).toBeVisible();
+    });
+    ```
+
+### 2. APIベースのテスト (サーバーアクションの直接呼び出し)
+
+UIを介さずにバックエンドのロジックを直接テストする方法です。
+
+- **フレームワーク**: Jest, Vitestなど
+- **長所**:
+    - 非常に高速に実行できる。
+    - UIの変更に影響されない。
+    - バックエンドのロジックを個別に検証できる。
+- **短所**:
+    - フロントエンドの表示や動作はテストできない。
+    - サーバーアクションを呼び出すためのセットアップ（認証情報のモックなど）が必要。
+
+#### セットアップ例
+
+テストクライアントは、`E2E_API_SPEC.md` に記載されている各サーバーアクションをインポートし、必要な引数を渡して直接実行します。
 
 ```typescript
-// playwright.config.ts
+// 例: Jestを使ったテスト
+import { createCharacter } from '@/actions/character';
 
-import { defineConfig, devices } from '@playwright/test';
+describe('Character Actions', () => {
+  it('should create a new character', async () => {
+    const newCharacter = {
+      name: 'Test Character',
+      introduction: 'Intro',
+      description: 'Desc',
+      imagePath: '/images/icons/icon1.png',
+      isLocked: false,
+    };
 
-export default defineConfig({
-  // ... 他の設定
-  webServer: {
-    // Next.jsの開発サーバーを起動するコマンド
-    command: 'npm run dev',
-    // 開発サーバーが起動したことを示すURL
-    url: 'http://127.0.0.1:9002',
-    // サーバーの起動を待ってからテストを開始する
-    reuseExistingServer: !process.env.CI,
-  },
-  use: {
-    // 各テストで使用するベースURL
-    baseURL: 'http://127.0.0.1:9002',
-  },
-  // ... 他の設定
-});
-```
+    // Firebaseの認証やFirestoreの初期化をモックする必要がある
+    const result = await createCharacter(newCharacter);
 
-**注意**: `package.json` の `dev` スクリプトで指定されているポート番号 (`-p 9002`) と `playwright.config.ts` のポート番号が一致していることを確認してください。
-
----
-
-## ステップ3: 最初のテストを作成する
-
-`tests` フォルダ内に新しいテストファイルを作成します。例えば、`tests/app.spec.ts` というファイルを作成し、以下の内容を記述します。
-
-このテストは、トップページにアクセスし、タイトルが "Townfolk Tales" であることを確認します。
-
-```typescript
-// tests/app.spec.ts
-
-import { test, expect } from '@playwright/test';
-
-test('has title', async ({ page }) => {
-  // 1. トップページにアクセス
-  await page.goto('/');
-
-  // 2. ページのタイトルが "Townfolk Tales" を含んでいることを確認
-  await expect(page).toHaveTitle(/Townfolk Tales/);
-});
-
-test('login page is displayed for non-logged-in user', async ({ page }) => {
-  // 1. トップページにアクセス
-  await page.goto('/');
-
-  // 2. "Townfolk Talesへようこそ" というテキストが表示されていることを確認
-  const welcomeMessage = page.getByText('Townfolk Talesへようこそ');
-  await expect(welcomeMessage).toBeVisible();
-
-  // 3. Googleログインボタンが表示されていることを確認
-  const googleLoginButton = page.getByRole('button', { name: /Googleでログイン/ });
-  await expect(googleLoginButton).toBeVisible();
+    expect(result.success).toBe(true);
+    expect(result.id).toBeDefined();
+  });
 });
 ```
 
 ---
 
-## ステップ4: テストの実行
+## 推奨されるアプローチ
 
-以下のコマンドを実行して、すべてのテストを実行します。
+1.  **主要なユーザーフロー**（ログイン、会話、キャラクター解放など）は、**UIベースのE2Eテスト**でカバーする。
+2.  **細かいロジックや境界値**（例: 不正な入力値でのキャラクター作成など）は、高速な**APIベースのテスト**でカバーする。
 
-```bash
-npx playwright test
-```
+この2つを組み合わせることで、テスト全体の信頼性と実行速度のバランスを取ることができます。
 
-テストがヘッドレスモード（ブラウザUIなし）で実行されます。テスト結果のレポートをブラウザで確認したい場合は、以下のコマンドを実行します。
-
-```bash
-npx playwright show-report
-```
-
----
-
-## E2Eテストのヒント
-
-*   **具体的なテストケース**: ログイン機能、キャラクター作成機能、会話の送受信など、主要なユーザーフローをテストケースとして作成しましょう。
-*   **セレクター**: `page.getByRole`, `page.getByText`, `page.getByLabel` などを活用して、堅牢なテストを作成します。
-*   **認証の管理**: ログイン状態をテストするには、認証情報を保存・再利用する設定が便利です。Playwrightの公式ドキュメント（[Authentication](https://playwright.dev/docs/auth)）を参照してください。
