@@ -35,6 +35,7 @@ function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', mess
  * @param password The password of the test user.
  */
 export async function runFirebaseAuthE2eTest(email: string, password: string):Promise<{ success: boolean; message: string; data?: any }> {
+  headers(); // Opt-out of caching
   log('INFO', 'Firebase Auth E2E test started.', { testName: 'runFirebaseAuthE2eTest', email });
 
   try {
@@ -71,6 +72,7 @@ export async function runFirebaseAuthE2eTest(email: string, password: string):Pr
  * A simple server action to test Cloud Logging.
  */
 export async function testCloudLogging(): Promise<{ success: boolean; message: string; }> {
+    headers(); // Opt-out of caching
     const testData = { 
         testName: "testCloudLogging",
         timestamp: new Date().toISOString(),
