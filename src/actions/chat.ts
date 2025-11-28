@@ -43,21 +43,41 @@ function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', mess
 
 
 export async function getAiResponse(
-  character: Character,
-  userMessage: string,
-  conversationHistory: Message[],
-  userProfile: UserProfile,
+  characterOrFormData: Character | FormData,
+  userMessage?: string,
+  conversationHistory?: Message[],
+  userProfile?: UserProfile,
 ): Promise<{ success: boolean; message: string; loveScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
+  
+  let character: Character;
+  let flowInput: any;
 
-  const flowInput = {
-    characterName: character.name,
-    characterIntroduction: character.introduction,
-    userMessage: userMessage,
-    conversationHistory: conversationHistory,
-    userProfile: userProfile,
-  };
+  // This check determines if the action was called from an external fetch (like our E2E test)
+  // or from within the application.
+  if (characterOrFormData instanceof FormData) {
+    // Called externally, parse FormData
+    const formData = characterOrFormData;
+    character = JSON.parse(formData.get('0') as string);
+    flowInput = {
+      characterName: character.name,
+      characterIntroduction: character.introduction,
+      userMessage: JSON.parse(formData.get('1') as string),
+      conversationHistory: JSON.parse(formData.get('2') as string),
+      userProfile: JSON.parse(formData.get('3') as string),
+    }
+  } else {
+    // Called internally
+    character = characterOrFormData;
+    flowInput = {
+      characterName: character.name,
+      characterIntroduction: character.introduction,
+      userMessage: userMessage,
+      conversationHistory: conversationHistory,
+      userProfile: userProfile,
+    };
+  }
   
   log('INFO', 'getAiResponse action called.', { requestPayload: flowInput });
 
