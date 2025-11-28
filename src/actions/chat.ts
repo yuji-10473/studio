@@ -18,18 +18,22 @@ import { headers } from 'next/headers';
  * @param message ログメッセージ
  * @param context 追加情報
  */
-function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG', message: string, context: Record<string, any> = {}) {
+function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', message: string, context: Record<string, any> = {}) {
+  let actionId = null;
   try {
-    headers(); 
+    // This function might be called in contexts where headers() is not available (e.g. during build).
+    // Safely try to get the actionId.
+    const headerList = headers();
+    actionId = headerList.get('next-action');
   } catch (error) {
-    // This function might be called in contexts where headers() is not available.
+    // Expected error when not in a request context, can be ignored.
   }
   
-  const logEntry = { severity, message, ...context };
+  const logEntry = { severity, message, ...context, actionId };
   if (process.env.NODE_ENV === 'production') {
       console.log(JSON.stringify(logEntry));
   } else {
-      if (severity === 'ERROR') {
+      if (severity === 'ERROR' || severity === 'CRITICAL') {
         console.error(logEntry);
       } else {
         console.log(logEntry);
@@ -46,9 +50,6 @@ export async function getAiResponse(
 ): Promise<{ success: boolean; message: string; loveScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
-  const headerList = headers();
-  // Server Action IDの取得を 'next-action' ヘッダーに一本化
-  const actionId = headerList.get('next-action');
 
   const flowInput = {
     characterName: character.name,
@@ -58,7 +59,7 @@ export async function getAiResponse(
     userProfile: userProfile,
   };
   
-  log('INFO', 'getAiResponse action called.', { actionId, requestPayload: flowInput });
+  log('INFO', 'getAiResponse action called.', { requestPayload: flowInput });
 
 
   const logData: any = {
@@ -87,7 +88,7 @@ export async function getAiResponse(
         throw new Error('AIから空の応答が返されました。');
     }
     
-    log('INFO', 'getAiResponse action successful.', { actionId, response: { success: true, message: aiMessage, loveScore }});
+    log('INFO', 'getAiResponse action successful.', { response: { success: true, message: aiMessage, loveScore }});
     return { success: true, message: aiMessage, loveScore };
 
   } catch (error) {
@@ -116,7 +117,7 @@ export async function getAiResponse(
         errorEmitter.emit('permission-error', permissionError);
     });
 
-    log('ERROR', 'getAiResponse action failed.', { actionId, error: errorMessage });
+    log('ERROR', 'getAiResponse action failed.', { error: errorMessage });
     return {
       success: false,
       message: `AIの応答生成中にエラーが発生しました:\n${errorMessage}`,
@@ -136,7 +137,8 @@ export async function getGuideResponse(
       throw new Error('AIから空の応答が返されました。');
     }
     return { success: true, message: aiMessage };
-  } catch (error) {
+  } catch (error)
+ {
     console.error('Error getting guide AI response:', error);
     let errorMessage =
       error instanceof Error ? error.message : String(error);

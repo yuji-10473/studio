@@ -11,7 +11,6 @@ import type { Character, Message, UserProfile } from '@/lib/types';
 
 /**
  * 構造化ログをコンソールに出力します。
- * 本番環境（App Hosting）では、このコンソール出力が自動的にCloud Loggingに収集されます。
  * @param severity ログの重要度
  * @param message ログメッセージ
  * @param context 追加情報
@@ -34,6 +33,7 @@ function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', mess
       }
   }
 }
+
 
 /**
  * E2E test for Firebase Authentication using client-side SDK.
