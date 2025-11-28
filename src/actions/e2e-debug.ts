@@ -299,6 +299,11 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
     log('INFO', 'Remote API test started.', { testName: 'runRemoteApiTest', baseUrl, testType });
 
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+            controller.abort();
+        }, 30000); // 30 seconds timeout
+        
         const authUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${webApiKey}`;
         const authBody = {
             email: 'user@example.com',
@@ -311,7 +316,10 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(authBody),
+            signal: controller.signal,
         });
+
+        clearTimeout(timeout);
 
         const authData = await authRes.json() as any;
 
@@ -356,14 +364,21 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
             const fetchHeaders = new Headers();
             fetchHeaders.append('Next-Action', actionId);
             fetchHeaders.append('Authorization', `Bearer ${idToken}`);
-            // Let node-fetch set the Content-Type header with the correct boundary
-            // fetchHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
+
+            const chatController = new AbortController();
+            const chatTimeout = setTimeout(() => {
+                chatController.abort();
+            }, 30000); // 30 seconds timeout for chat response
+
 
             const chatRes = await fetch(chatUrl, {
                 method: 'POST',
                 headers: fetchHeaders,
                 body: form,
+                signal: chatController.signal,
             });
+
+            clearTimeout(chatTimeout);
 
             log('DEBUG', 'Remote chat action response received.', { status: chatRes.status, headers: Object.fromEntries(chatRes.headers.entries()) });
             
