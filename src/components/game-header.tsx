@@ -65,6 +65,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingComprehensive, setIsTestingComprehensive] = React.useState(false);
   const [isTestingRemoteApi, setIsTestingRemoteApi] = React.useState(false);
   const [remoteApiUrl, setRemoteApiUrl] = React.useState('http://localhost:9002');
+  const [actionId, setActionId] = React.useState('');
 
   const { toast } = useToast();
 
@@ -116,13 +117,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const handleAuthE2ETest = async () => {
     setIsTestingAuth(true);
     setErrorMessage('');
-    // IMPORTANT: Use credentials for a pre-existing test user.
-    // Do not commit real user credentials to the repository.
     const result = await runFirebaseAuthE2eTest('user@example.com', 'password123');
-    
-    // Display the full result in the error message log for debugging
     setErrorMessage(JSON.stringify(result, null, 2));
-    
     if (result.success) {
         toast({
             title: "E2E認証テスト成功",
@@ -202,7 +198,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     }
     setIsTestingRemoteApi(true);
     setErrorMessage('');
-    const result = await runRemoteApiTest(remoteApiUrl, testType);
+    const result = await runRemoteApiTest(remoteApiUrl, testType, actionId);
     setErrorMessage(JSON.stringify(result, null, 2));
      if (result.success) {
       toast({
@@ -297,7 +293,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                   <Cog className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel>設定</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -349,8 +345,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>外部APIテスト</DropdownMenuLabel>
-                     <div className="px-2 py-1.5 text-sm outline-none">
-                       <Label htmlFor="remote-api-url" className="flex items-center gap-2 cursor-pointer text-xs mb-2">
+                     <div className="px-2 py-1.5 text-sm outline-none" onSelect={(e) => e.preventDefault()}>
+                       <Label htmlFor="remote-api-url" className="flex items-center gap-2 cursor-pointer text-xs mb-1">
                           テスト対象URL
                         </Label>
                        <Input 
@@ -358,22 +354,32 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                          value={remoteApiUrl}
                          onChange={(e) => setRemoteApiUrl(e.target.value)}
                          placeholder="https://your-app-url.com"
-                         className="h-8"
+                         className="h-8 mb-2"
+                       />
+                       <Label htmlFor="action-id" className="flex items-center gap-2 cursor-pointer text-xs mb-1">
+                          サーバーアクションID (Chat用)
+                        </Label>
+                       <Input 
+                         id="action-id"
+                         value={actionId}
+                         onChange={(e) => setActionId(e.target.value)}
+                         placeholder="ローカルテストログからコピー"
+                         className="h-8 mb-2"
                        />
                        <div className='flex gap-2 w-full mt-2'>
                           <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('auth')} disabled={isTestingRemoteApi}>
-                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin mr-2' /> : <Wifi className="mr-2" />}
-                            認証
+                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin mr-2 h-4 w-4' /> : <Wifi className="mr-2 h-4 w-4" />}
+                            認証テスト
                           </Button>
-                           <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('chat')} disabled={isTestingRemoteApi}>
-                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin mr-2' /> : <MessageCircle className="mr-2" />}
-                            応答
+                           <Button variant="outline" size="sm" className='w-full' onClick={() => handleRemoteApiTest('chat')} disabled={isTestingRemoteApi || !actionId}>
+                            {isTestingRemoteApi ? <LoaderCircle className='animate-spin mr-2 h-4 w-4' /> : <MessageCircle className="mr-2 h-4 w-4" />}
+                            応答テスト
                           </Button>
                        </div>
                     </div>
 
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
+                    <DropdownMenuLabel>個別デバッグツール</DropdownMenuLabel>
                     <DropdownMenuItem onClick={handleTestLogging} disabled={isTestingLogging}>
                       {isTestingLogging ? (
                         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />

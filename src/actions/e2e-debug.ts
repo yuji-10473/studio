@@ -17,7 +17,6 @@ import type { Character, Message, UserProfile } from '@/lib/types';
  * @param context 追加情報
  */
 function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', message: string, context: Record<string, any> = {}) {
-  // Opt-out of caching. This is necessary for server actions that use this function.
   try {
     headers(); 
   } catch (error) {
@@ -25,11 +24,9 @@ function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG' | 'CRITICAL', mess
   }
   
   const logEntry = { severity, message, ...context };
-  // 本番環境ではCloud Loggingが自動でJSONをパースするため、JSON文字列として出力する
   if (process.env.NODE_ENV === 'production') {
       console.log(JSON.stringify(logEntry));
   } else {
-      // 開発環境では読みやすいようにオブジェクトのまま出力する
       if (severity === 'ERROR' || severity === 'CRITICAL') {
         console.error(logEntry);
       } else {
@@ -87,7 +84,6 @@ export async function runChatE2eTest(): Promise<{ success: boolean; message: str
     log('INFO', 'Chat E2E test started.', { testName: 'runChatE2eTest' });
 
     try {
-        // 1. Prepare mock data for the getAiResponse function
         const testCharacter: Character = {
             id: 'test-char-01',
             name: 'エララ',
@@ -114,7 +110,6 @@ export async function runChatE2eTest(): Promise<{ success: boolean; message: str
 
         log('INFO', 'Calling getAiResponse with test data.', { request: { testCharacter, testUserProfile, testUserMessage, testConversationHistory }});
 
-        // 2. Call the actual server action
         const result = await getAiResponse(
             testCharacter,
             testUserMessage,
@@ -188,7 +183,6 @@ export async function runGuideChatE2eTest(): Promise<{ success: boolean; message
     log('INFO', 'Guide Chat E2E test started.', { testName: 'runGuideChatE2eTest' });
 
     try {
-        // 1. Prepare mock data for the getGuideResponse function
         const testUserMessage = '魅力ポイントって何？';
 
         const testConversationHistory: { role: 'user' | 'model'; content: string }[] = [
@@ -198,7 +192,6 @@ export async function runGuideChatE2eTest(): Promise<{ success: boolean; message
 
         log('INFO', 'Calling getGuideResponse with test data.', { request: { testUserMessage, testConversationHistory }});
 
-        // 2. Call the actual server action
         const result = await getGuideResponse(
             testUserMessage,
             testConversationHistory
@@ -242,7 +235,6 @@ export async function runComprehensiveE2eTest(): Promise<{ success: boolean; mes
     let overallSuccess = true;
 
     try {
-        // 1. Auth Test
         log('INFO', 'Running Auth Test...');
         results.authTest = await runFirebaseAuthE2eTest('user@example.com', 'password123');
         if (!(results.authTest as any).success) {
@@ -250,7 +242,6 @@ export async function runComprehensiveE2eTest(): Promise<{ success: boolean; mes
         }
         log('INFO', 'Auth Test finished.');
 
-        // 2. Chat Test
         log('INFO', 'Running Chat Test...');
         results.chatTest = await runChatE2eTest();
         if (!(results.chatTest as any).success) {
@@ -258,7 +249,6 @@ export async function runComprehensiveE2eTest(): Promise<{ success: boolean; mes
         }
         log('INFO', 'Chat Test finished.');
 
-        // 3. Guide Chat Test
         log('INFO', 'Running Guide Chat Test...');
         results.guideTest = await runGuideChatE2eTest();
         if (!(results.guideTest as any).success) {
@@ -293,8 +283,9 @@ export async function runComprehensiveE2eTest(): Promise<{ success: boolean; mes
  * Runs an E2E test against a remote API endpoint.
  * @param baseUrl The base URL of the remote API.
  * @param testType The type of test to run ('auth' or 'chat').
+ * @param actionId The server action ID for chat test.
  */
-export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat'): Promise<{ success: boolean; message: string; data?: any }> {
+export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat', actionId?: string): Promise<{ success: boolean; message: string; data?: any }> {
     headers(); // Opt-out of caching
     const webApiKey = process.env.NEXT_PUBLIC_FIREBASE_WEB_API_KEY;
 
@@ -314,6 +305,7 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
             returnSecureToken: true,
         };
 
+        log('DEBUG', 'Attempting remote authentication.', { url: authUrl });
         const authRes = await fetch(authUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -325,7 +317,7 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
         if (!authRes.ok || !authData.idToken) {
             throw new Error(`Remote auth failed: ${authData?.error?.message || 'Unknown error'}`);
         }
-        
+        log('DEBUG', 'Remote authentication successful.');
         const idToken = authData.idToken;
 
         if (testType === 'auth') {
@@ -337,31 +329,59 @@ export async function runRemoteApiTest(baseUrl: string, testType: 'auth' | 'chat
         }
 
         if (testType === 'chat') {
-            // NOTE: This assumes the target app exposes a standard /api/chat endpoint.
-            // Our current app uses Server Actions, so this part won't work without
-            // a dedicated REST API endpoint on the target. This is a conceptual implementation.
-            const chatUrl = `${baseUrl}/api/chat`; // This endpoint does not exist yet.
-            const testPayload = {
-                 character: { id: 'elara', name: 'エララ', introduction: '村の賢いパン屋。', description: '...', imagePath: '...' },
-                 userMessage: 'こんにちは',
-                 conversationHistory: [],
-                 userProfile: { id: 'test-user', displayName: 'Remote Tester', charm: 10, gameDate: 1, email: 'user@example.com' }
+            if (!actionId) {
+                throw new Error('Chat test requires the Server Action ID. Please run the local chat test first to log the ID.');
+            }
+            // For Server Actions, the URL is the page path, not a dedicated API route.
+            const chatUrl = new URL('/', baseUrl).toString(); 
+            
+            const testCharacter: Character = {
+                 id: 'elara', name: 'エララ', introduction: '村の賢いパン屋。', description: '...', imagePath: '/images/icons/icon1.png'
             };
+            const testUserProfile: UserProfile = { 
+                id: 'test-user', displayName: 'Remote Tester', charm: 10, gameDate: 1, email: 'user@example.com' 
+            };
+            const testUserMessage = 'こんにちは';
+            const testConversationHistory: Message[] = [];
+
+            // Server actions expect urlencoded form data for arguments.
+            const body = new URLSearchParams();
+            body.append('0', JSON.stringify(testCharacter));
+            body.append('1', JSON.stringify(testUserMessage));
+            body.append('2', JSON.stringify(testConversationHistory));
+            body.append('3', JSON.stringify(testUserProfile));
+            
+            log('DEBUG', 'Attempting remote chat action.', { url: chatUrl, actionId, body: body.toString() });
 
             const chatRes = await fetch(chatUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Next-Action': actionId,
                     'Authorization': `Bearer ${idToken}`,
                 },
-                body: JSON.stringify(testPayload),
+                body: body.toString(),
             });
-            
-            const chatData = await chatRes.json();
 
+            log('DEBUG', 'Remote chat action response received.', { status: chatRes.status, headers: Object.fromEntries(chatRes.headers.entries()) });
+            
+            const responseText = await chatRes.text();
+            
             if (!chatRes.ok) {
-                 throw new Error(`Remote chat API failed: ${JSON.stringify(chatData)}`);
+                 throw new Error(`Remote chat API failed with status ${chatRes.status}: ${responseText}`);
             }
+
+            // Server action responses need special parsing.
+            // The response is a string where each line starts with a number, a colon, and then the chunk.
+            const resultLines = responseText.split('\n').filter(line => line.startsWith('1:'));
+            if (resultLines.length === 0) {
+              throw new Error(`Invalid server action response format: ${responseText}`);
+            }
+            // We take the last valid line which should contain the full response object
+            const lastLine = resultLines[resultLines.length - 1];
+
+            const jsonString = lastLine.substring(lastLine.indexOf('{'));
+            const chatData = JSON.parse(jsonString);
 
             return {
                 success: true,

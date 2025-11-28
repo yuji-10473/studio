@@ -9,6 +9,34 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { dynamicCharacterIntroduction } from '@/ai/flows/dynamic-character-introduction';
 import { guideConversation } from '@/ai/flows/guide-conversation';
+import { headers } from 'next/headers';
+
+
+/**
+ * 構造化ログをコンソールに出力します。
+ * @param severity ログの重要度
+ * @param message ログメッセージ
+ * @param context 追加情報
+ */
+function log(severity: 'INFO' | 'ERROR' | 'WARNING' | 'DEBUG', message: string, context: Record<string, any> = {}) {
+  try {
+    headers(); 
+  } catch (error) {
+    // This function might be called in contexts where headers() is not available.
+  }
+  
+  const logEntry = { severity, message, ...context };
+  if (process.env.NODE_ENV === 'production') {
+      console.log(JSON.stringify(logEntry));
+  } else {
+      if (severity === 'ERROR') {
+        console.error(logEntry);
+      } else {
+        console.log(logEntry);
+      }
+  }
+}
+
 
 export async function getAiResponse(
   character: Character,
@@ -18,6 +46,8 @@ export async function getAiResponse(
 ): Promise<{ success: boolean; message: string; loveScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsCollection = collection(firestore, 'conversations_errors');
+  const headerList = headers();
+  const actionId = headerList.get('x-action-id') || headerList.get('Next-Action');
 
   const flowInput = {
     characterName: character.name,
@@ -26,6 +56,9 @@ export async function getAiResponse(
     conversationHistory: conversationHistory,
     userProfile: userProfile,
   };
+  
+  log('INFO', 'getAiResponse action called.', { actionId, requestPayload: flowInput });
+
 
   const logData: any = {
     flow: 'dynamicCharacterIntroduction',
@@ -36,7 +69,6 @@ export async function getAiResponse(
   try {
     const response = await dynamicCharacterIntroduction(flowInput);
     
-    // Populate the full request payload for logging
     logData.request = {
         ...flowInput,
         renderedPrompt: response.prompt,
@@ -46,7 +78,7 @@ export async function getAiResponse(
     const loveScore = response.loveScore;
     const rawResponse = response.rawResponse;
 
-    if (!aiMessage && aiMessage !== "") { // Handle cases where the AI returns an empty string
+    if (!aiMessage && aiMessage !== "") { 
         const finishReason = rawResponse?.candidates?.[0]?.finishReason;
         if (finishReason === 'MAX_TOKENS' || finishReason === 'LENGTH') {
             throw new Error('AIの応答が長すぎるため、途中で中断されました。入力する文字数を減らして、もう一度試してください。');
@@ -54,6 +86,7 @@ export async function getAiResponse(
         throw new Error('AIから空の応答が返されました。');
     }
     
+    log('INFO', 'getAiResponse action successful.', { actionId, response: { success: true, message: aiMessage, loveScore }});
     return { success: true, message: aiMessage, loveScore };
 
   } catch (error) {
@@ -71,9 +104,7 @@ export async function getAiResponse(
         }
     }
     
-    // Populate request data even on error, if possible
     logData.request = flowInput;
-
     logData.error = errorMessage;
     addDoc(conversationsCollection, logData).catch(async (dbError) => {
         const permissionError = new FirestorePermissionError({
@@ -84,6 +115,7 @@ export async function getAiResponse(
         errorEmitter.emit('permission-error', permissionError);
     });
 
+    log('ERROR', 'getAiResponse action failed.', { actionId, error: errorMessage });
     return {
       success: false,
       message: `AIの応答生成中にエラーが発生しました:\n${errorMessage}`,
