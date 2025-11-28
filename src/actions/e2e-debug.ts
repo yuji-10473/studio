@@ -3,7 +3,6 @@
 
 import { headers } from 'next/headers';
 import fetch, { Headers } from 'node-fetch';
-import FormData from 'form-data';
 import { initializeFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getAiResponse, getGuideResponse } from '@/actions/chat';
