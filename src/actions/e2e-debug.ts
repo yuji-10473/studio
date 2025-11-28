@@ -2,6 +2,7 @@
 'use server';
 
 import { headers } from 'next/headers';
+import fetch from 'node-fetch';
 import { initializeFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getAiResponse, getGuideResponse } from '@/actions/chat';

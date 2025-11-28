@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot, FlaskConical } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot, FlaskConical, Wifi } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
 import { runFirebaseAuthE2eTest, testCloudLogging, runChatE2eTest, runGuideChatE2eTest, runComprehensiveE2eTest } from '@/actions/e2e-debug';
+import { Input } from './ui/input';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -62,6 +63,9 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const [isTestingLogging, setIsTestingLogging] = React.useState(false);
   const [isTestingGuideChat, setIsTestingGuideChat] = React.useState(false);
   const [isTestingComprehensive, setIsTestingComprehensive] = React.useState(false);
+  const [isTestingRemoteApi, setIsTestingRemoteApi] = React.useState(false);
+  const [remoteApiUrl, setRemoteApiUrl] = React.useState('');
+
   const { toast } = useToast();
 
   const handleTestKey = async () => {
@@ -269,7 +273,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                   <Cog className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuLabel>設定</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -310,9 +314,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                     <DropdownMenuItem onClick={handleComprehensiveTest} disabled={isTestingComprehensive}>
+                    <DropdownMenuLabel>ローカルE2Eテスト</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleComprehensiveTest} disabled={isTestingComprehensive}>
                       {isTestingComprehensive ? (
                         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
@@ -321,6 +324,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       <span>総合E2Eテストを実行</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuLabel>デバッグツール</DropdownMenuLabel>
                     <DropdownMenuItem onClick={handleTestLogging} disabled={isTestingLogging}>
                       {isTestingLogging ? (
                         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
@@ -351,7 +355,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       ) : (
                         <TestTube2 className="mr-2 h-4 w-4" />
                       )}
-                      <span>E2E認証テスト</span>
+                      <span>(ローカル)認証テスト</span>
                     </DropdownMenuItem>
                      <DropdownMenuItem onClick={handleChatE2ETest} disabled={isTestingChat}>
                       {isTestingChat ? (
@@ -359,7 +363,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       ) : (
                         <MessageCircle className="mr-2 h-4 w-4" />
                       )}
-                      <span>AI応答テスト</span>
+                      <span>(ローカル)AI応答テスト</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleGuideChatE2ETest} disabled={isTestingGuideChat}>
                       {isTestingGuideChat ? (
@@ -367,7 +371,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                       ) : (
                         <Bot className="mr-2 h-4 w-4" />
                       )}
-                      <span>案内役応答テスト</span>
+                      <span>(ローカル)案内役応答テスト</span>
                     </DropdownMenuItem>
                   </>
                 )}
