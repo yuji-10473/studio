@@ -34,7 +34,7 @@ import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
-import { runE2eTest, testCloudLogging } from '@/actions/e2e-debug';
+import { runFirebaseAuthE2eTest, testCloudLogging } from '@/actions/e2e-debug';
 
 type GameHeaderProps = {
   onCreateCharacter: () => void;
@@ -107,12 +107,15 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   }
 
   const handleE2ETest = async () => {
-    if (!user) return;
     setIsTestingE2E(true);
     setErrorMessage('');
-    const result = await runE2eTest(user.uid);
+    // IMPORTANT: Use credentials for a pre-existing test user.
+    // Do not commit real user credentials to the repository.
+    const result = await runFirebaseAuthE2eTest('user@example.com', 'password123');
+    
     // Display the full result in the error message log for debugging
     setErrorMessage(JSON.stringify(result, null, 2));
+    
     if (result.success) {
         toast({
             title: "E2Eデバッグ成功",
