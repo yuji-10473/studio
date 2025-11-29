@@ -30,6 +30,11 @@
     { "id": "icon2", "path": "/images/icons/icon2.png" },
     { "id": "icon3", "path": "/images/icons/icon3.png" },
     { "id": "icon4", "path": "/images/icons/icon4.png" },
-    { "id": "icon5", "path": "/images/icons/icon5.png" }
+    { "id": "icon5", "path": "/images/icons/icon5.png" },
+    { "id": "icon6", "path": "/images/icons/icon6.png" },
+    { "id": "icon7", "path": "/images/icons/icon7.png" },
+    { "id": "icon8", "path": "/images/icons/icon8.png" },
+    { "id": "icon9", "path": "/images/icons/icon9.png" },
+    { "id": "icon10", "path": "/images/icons/icon10.png" }
   ]
 }
