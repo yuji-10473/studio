@@ -61,17 +61,19 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
 
   const prevMessagesLength = useRef(messages?.length ?? 0);
   useEffect(() => {
-    if (viewportRef.current && messages && messages.length > prevMessagesLength.current) {
-        // Only autoscroll if new messages were added to the end (not loaded at the top)
-        // This is a simple check assuming `loadMore` adds to the start and new messages add to the end.
-        const newMessagesCount = messages.length - prevMessagesLength.current;
-        const isNewMessage = newMessagesCount === 1 || newMessagesCount === 2; // User + AI message
-        if (isNewMessage) {
-            viewportRef.current.scrollTo({
-                top: viewportRef.current.scrollHeight,
-                behavior: 'smooth',
-            });
-        }
+    if (viewportRef.current && messages) {
+      const newMessagesCount = messages.length - prevMessagesLength.current;
+      // Only scroll to bottom if new messages were added at the end, not loaded at the top.
+      // A positive newMessagesCount indicates new messages. A single "load more" action adds multiple.
+      // A simple heuristic: if only 1 or 2 messages are added, it's a new chat exchange.
+      const isNewMessage = newMessagesCount > 0 && newMessagesCount <= 2;
+
+      if (isNewMessage) {
+        viewportRef.current.scrollTo({
+          top: viewportRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
     }
     prevMessagesLength.current = messages?.length ?? 0;
   }, [messages]);

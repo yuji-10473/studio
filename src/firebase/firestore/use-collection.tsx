@@ -79,7 +79,6 @@ export function useCollection<T>(
     }
     
     setLoading(true);
-    console.log(`[useCollection] Firestore list query initiated. Path: "${path}", User UID: ${user.uid}`);
     
     const unsubscribe = onSnapshot(
       queryMemo,
