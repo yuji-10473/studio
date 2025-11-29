@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -62,10 +63,15 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   useEffect(() => {
     if (viewportRef.current && messages && messages.length > prevMessagesLength.current) {
         // Only autoscroll if new messages were added to the end (not loaded at the top)
-        viewportRef.current.scrollTo({
-            top: viewportRef.current.scrollHeight,
-            behavior: 'smooth',
-        });
+        // This is a simple check assuming `loadMore` adds to the start and new messages add to the end.
+        const newMessagesCount = messages.length - prevMessagesLength.current;
+        const isNewMessage = newMessagesCount === 1 || newMessagesCount === 2; // User + AI message
+        if (isNewMessage) {
+            viewportRef.current.scrollTo({
+                top: viewportRef.current.scrollHeight,
+                behavior: 'smooth',
+            });
+        }
     }
     prevMessagesLength.current = messages?.length ?? 0;
   }, [messages]);
