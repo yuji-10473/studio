@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   collection,
   query,
@@ -28,12 +28,9 @@ interface UseCollectionOptions {
   sortDirection?: 'asc' | 'desc';
   filter?: Filter;
   limit?: number;
-  startAfter?: QueryDocumentSnapshot | null;
 }
 
-type SnapshotCallback = (snapshot: QuerySnapshot<DocumentData> | null) => void;
-
-function buildQuery(firestore: any, path: string, options?: UseCollectionOptions) {
+function buildQuery(firestore: any, path: string, options?: UseCollectionOptions & { startAfter?: QueryDocumentSnapshot | null; }) {
     let q: Query<DocumentData> = collection(firestore, path);
     if (options?.filter) {
       q = query(q, where(options.filter[0], options.filter[1], options.filter[2]));
@@ -52,20 +49,22 @@ function buildQuery(firestore: any, path: string, options?: UseCollectionOptions
 
 export function useCollection<T>(
   path: string | null,
-  options?: UseCollectionOptions,
-  onSnapshotCallback?: SnapshotCallback
+  options?: UseCollectionOptions
 ) {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
 
   const queryMemo = useMemo(() => {
-    if (!firestore || !path || !user) return null; // Wait for user
+    if (!firestore || !path || !user) return null;
     return buildQuery(firestore, path, options);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, firestore, user, options]); // Depend on user and the whole options object
+  }, [path, firestore, user, options]);
 
   useEffect(() => {
     if (userLoading) {
@@ -90,8 +89,9 @@ export function useCollection<T>(
           id: doc.id,
         })) as T[];
         setData(docs);
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1] ?? null);
+        setHasMore(!snapshot.empty && snapshot.docs.length >= (options?.limit ?? 0));
         setLoading(false);
-        onSnapshotCallback?.(snapshot);
       },
       (err: FirestoreError) => {
         const permissionError = new FirestorePermissionError({
@@ -105,30 +105,33 @@ export function useCollection<T>(
     );
 
     return () => unsubscribe();
-  }, [queryMemo, path, onSnapshotCallback, user, userLoading]);
+  }, [queryMemo, path, user, userLoading, options?.limit]);
 
-  return { data, loading, error };
-}
+  const loadMore = useCallback(async () => {
+    if (!firestore || !path || !lastVisible || !hasMore || loadingMore) return;
 
-useCollection.fetchMore = async <T>(
-    path: string,
-    options: UseCollectionOptions
-): Promise<{ data: T[] | null; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean; }> => {
-    const { firestore } = initializeFirebase();
-    const q = buildQuery(firestore, path, options);
-    
+    setLoadingMore(true);
+    const moreOptions = { ...options, startAfter: lastVisible };
+    const q = buildQuery(firestore, path, moreOptions);
+
     try {
         const snapshot = await getDocs(q);
-        const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as T[];
-        const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-        const hasMore = !snapshot.empty && snapshot.docs.length >= (options.limit || 0);
-        return { data: docs, lastDoc, hasMore };
+        const newDocs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as T[];
+        setData(prev => (prev ? [...prev, ...newDocs] : newDocs));
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1] ?? null);
+        setHasMore(!snapshot.empty && snapshot.docs.length >= (options?.limit ?? 0));
     } catch (err: any) {
-         const permissionError = new FirestorePermissionError({
+        const permissionError = new FirestorePermissionError({
             path: path,
             operation: 'list',
         }, err);
         errorEmitter.emit('permission-error', permissionError);
-        throw err;
+        setError(err);
+    } finally {
+        setLoadingMore(false);
     }
-};
+  }, [firestore, path, lastVisible, hasMore, loadingMore, options]);
+
+
+  return { data, loading, error, hasMore, loadingMore, loadMore };
+}

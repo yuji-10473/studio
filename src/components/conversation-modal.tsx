@@ -20,7 +20,6 @@ import type { Character, CharacterState, CharacterId, Message } from '@/lib/type
 import { cn } from '@/lib/utils';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase';
-import { QueryDocumentSnapshot } from 'firebase/firestore';
 
 type ConversationModalProps = {
   isOpen: boolean;
@@ -35,11 +34,6 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   const { setErrorMessage } = useGameState();
   const { user } = useUser();
   
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
   const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
 
   const collectionOptions = useMemo(() => ({
@@ -49,22 +43,14 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     filter: ['characterId', '==', characterId] as const
   }), [characterId]);
   
-  const { data: initialMessages, loading: initialLoading, error } = useCollection<Message>(
-    conversationPath, 
-    collectionOptions,
-    (snapshot) => {
-       if (snapshot) {
-         setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-         setHasMore(!snapshot.empty && snapshot.docs.length >= 10);
-       }
-    }
-  );
-
-  useEffect(() => {
-    if (initialMessages) {
-        setMessages(initialMessages.slice().reverse()); // desc -> asc
-    }
-  }, [initialMessages]);
+  const { 
+    data: messages, 
+    loading: initialLoading, 
+    error,
+    loadMore,
+    hasMore,
+    loadingMore 
+  } = useCollection<Message>(conversationPath, collectionOptions);
 
   useEffect(() => {
     if (error) {
@@ -72,58 +58,38 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     }
   }, [error, setErrorMessage]);
 
-  const prevMessagesLength = useRef(messages.length);
+  const prevMessagesLength = useRef(messages?.length ?? 0);
   useEffect(() => {
-    if (viewportRef.current && messages.length > prevMessagesLength.current) {
+    if (viewportRef.current && messages && messages.length > prevMessagesLength.current) {
+        // Only autoscroll if new messages were added to the end (not loaded at the top)
         viewportRef.current.scrollTo({
-        top: viewportRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+            top: viewportRef.current.scrollHeight,
+            behavior: 'smooth',
+        });
     }
-    prevMessagesLength.current = messages.length;
+    prevMessagesLength.current = messages?.length ?? 0;
   }, [messages]);
 
 
-  const loadMore = () => {
-    if (!lastVisible || !hasMore || isLoadingMore || !conversationPath) return;
-    
-    setIsLoadingMore(true);
-    useCollection.fetchMore<Message>(conversationPath, {
-      sort: 'timestamp',
-      sortDirection: 'desc',
-      limit: 10,
-      filter: ['characterId', '==', characterId] as const,
-      startAfter: lastVisible,
-    }).then(({ data: newMessages, lastDoc, hasMore: newHasMore}) => {
-        if (newMessages) {
-            setMessages(prev => [...newMessages.slice().reverse(), ...prev]);
-        }
-        setLastVisible(lastDoc);
-        setHasMore(newHasMore);
-        setIsLoadingMore(false);
-    }).catch(err => {
-        setErrorMessage(err.message);
-        setIsLoadingMore(false);
-    });
-  }
-
-
-  if (initialLoading && messages.length === 0) {
+  if (initialLoading && !messages) {
     return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-8 h-8 animate-spin" /></div>
   }
+
+  // Reverse the messages for display (asc order)
+  const displayedMessages = messages ? [...messages].reverse() : [];
 
   return (
     <ScrollArea className="flex-grow" viewportRef={viewportRef}>
         <div className="p-4 space-y-4">
         {hasMore && (
              <div className="text-center">
-                <Button variant="outline" size="sm" onClick={loadMore} disabled={isLoadingMore}>
-                    {isLoadingMore ? <LoaderCircle className="w-4 h-4 animate-spin mr-2" /> : <MessageSquarePlus className="w-4 h-4 mr-2" />}
+                <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+                    {loadingMore ? <LoaderCircle className="w-4 h-4 animate-spin mr-2" /> : <MessageSquarePlus className="w-4 h-4 mr-2" />}
                     もっと見る
                 </Button>
             </div>
         )}
-        {messages.map((msg, index) => (
+        {displayedMessages.map((msg, index) => (
           <div
             key={msg.id || index}
             className={cn(
