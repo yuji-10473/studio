@@ -54,8 +54,10 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     conversationPath, 
     collectionOptions,
     (snapshot) => {
-       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-       setHasMore(!snapshot.empty && snapshot.docs.length >= 10);
+       if (snapshot) {
+         setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+         setHasMore(!snapshot.empty && snapshot.docs.length >= 10);
+       }
     }
   );
 

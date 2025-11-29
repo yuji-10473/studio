@@ -30,13 +30,14 @@ service cloud.firestore {
       allow list, read, create, update, delete: if request.auth.uid == userId;
     }
     
-    // Allow a user to get their own messages and create new ones.
-    match /users/{userId}/conversationHistory/{messageId} {
-      allow get, create, update, delete: if request.auth.uid == userId;
-    }
     // Allow a user to LIST their own conversation history.
     match /users/{userId}/conversationHistory {
         allow list: if request.auth.uid == userId;
+    }
+
+    // Allow a user to get their own messages and create new ones.
+    match /users/{userId}/conversationHistory/{messageId} {
+      allow get, create, update, delete: if request.auth.uid == userId;
     }
 
     // --- Admins Rules ---

@@ -32,12 +32,12 @@ interface UseCollectionOptions {
   startAfter?: QueryDocumentSnapshot | null;
 }
 
-type SnapshotCallback = (snapshot: QuerySnapshot<DocumentData>) => void;
+type SnapshotCallback = (snapshot: QuerySnapshot<DocumentData> | null) => void;
 
 function buildQuery(firestore: any, path: string, options?: UseCollectionOptions) {
     let q: Query<DocumentData> = collection(firestore, path);
     if (options?.filter) {
-      q = query(q, where(...options.filter));
+      q = query(q, where(options.filter[0], options.filter[1], options.filter[2]));
     }
     if (options?.sort) {
       q = query(q, orderBy(options.sort, options.sortDirection || 'asc'));
@@ -68,14 +68,7 @@ export function useCollection<T>(
 
   const queryMemo = useMemo(() => {
     if (!firestore || !path || userLoading) return null;
-    
-    // The filter array itself is a new object on each render, so we need to memoize based on its contents.
-    const memoOptions = options ? { ...options } : undefined;
-    if (filterKey && filterOp && filterValue !== undefined) {
-        memoOptions!.filter = [filterKey, filterOp, filterValue] as const;
-    }
-
-    return buildQuery(firestore, path, memoOptions);
+    return buildQuery(firestore, path, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, firestore, userLoading, options?.sort, options?.sortDirection, options?.limit, filterKey, filterOp, filterValue, options?.startAfter]);
 
@@ -85,13 +78,13 @@ export function useCollection<T>(
       return;
     }
     
-    if (!queryMemo || !path) {
+    if (!queryMemo || !path || !user) { // Ensure user exists before querying
       setLoading(false);
       setData(null);
       return;
     }
     
-    console.log(`[useCollection] Firestore list query initiated. Path: "${path}", User UID: ${user?.uid ?? 'N/A'}`);
+    console.log(`[useCollection] Firestore list query initiated. Path: "${path}", User UID: ${user.uid}`);
     
     const unsubscribe = onSnapshot(
       queryMemo,
@@ -116,7 +109,7 @@ export function useCollection<T>(
     );
 
     return () => unsubscribe();
-  }, [queryMemo, path, onSnapshotCallback, user?.uid, userLoading]);
+  }, [queryMemo, path, onSnapshotCallback, user, userLoading]);
 
   return { data, loading, error };
 }
