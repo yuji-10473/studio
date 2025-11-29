@@ -20,6 +20,7 @@ import {
 import { useFirestore } from '../provider';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
+import { useUser } from '../auth/use-user';
 
 type Filter = readonly [string, '==', any];
 
@@ -59,6 +60,7 @@ export function useCollection<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
   const firestore = useFirestore();
+  const { user } = useUser();
   
   const filterKey = options?.filter?.[0];
   const filterOp = options?.filter?.[1];
@@ -85,6 +87,8 @@ export function useCollection<T>(
     }
     setLoading(true);
 
+    console.log(`[useCollection] Firestore list query initiated. Path: "${path}", User UID: ${user?.uid ?? 'N/A'}`);
+
     const unsubscribe = onSnapshot(
       queryMemo,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -108,7 +112,7 @@ export function useCollection<T>(
     );
 
     return () => unsubscribe();
-  }, [queryMemo, path, onSnapshotCallback]);
+  }, [queryMemo, path, onSnapshotCallback, user?.uid]);
 
   return { data, loading, error };
 }
