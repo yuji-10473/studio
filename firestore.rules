@@ -18,8 +18,11 @@ service cloud.firestore {
 
     // --- User Profile, States, and History Rules ---
     match /users/{userId} {
-      // Allow a user to read and manage their own profile
-      allow read, create, update: if request.auth.uid == userId;
+      // Allow any logged-in user to READ a user profile document.
+      // This is necessary to allow queries on subcollections.
+      // Write access is still restricted to the user themselves.
+      allow read: if request.auth != null;
+      allow create, update: if request.auth.uid == userId;
     }
 
     match /users/{userId}/characterStates/{characterId} {
@@ -31,8 +34,7 @@ service cloud.firestore {
     match /users/{userId}/conversationHistory/{messageId} {
       allow get, create, update, delete: if request.auth.uid == userId;
     }
-    // Allow a user to LIST their own conversation history, but only when filtering by characterId.
-    // This is required to allow the filter on `characterId` in useCollection.
+    // Allow a user to LIST their own conversation history.
     match /users/{userId}/conversationHistory {
         allow list: if request.auth.uid == userId;
     }
