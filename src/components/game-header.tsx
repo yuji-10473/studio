@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useGameState } from '@/contexts/game-state';
 import { Button } from '@/components/ui/button';
-import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot, FlaskConical, Wifi } from 'lucide-react';
+import { Heart, CalendarDays, Bed, KeyRound, LoaderCircle, Database, LogOut, UserPlus, Cog, Sparkles, Volume2, User as UserIcon, Music, TestTube2, Cloud, MessageCircle, Bot, FlaskConical, Wifi, Fingerprint } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,6 +232,21 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     setBgmVolume(value[0]);
   }
   
+  const handleCheckUid = () => {
+    if (user?.uid) {
+      toast({
+        title: "UIDチェック",
+        description: `現在のユーザーUIDは次のとおりです: ${user.uid}`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "UIDチェック",
+        description: "ユーザーUIDが取得できません。ログインしていない可能性があります。",
+      });
+    }
+  };
+
   const isAdmin = userRole === 'admin';
 
   return (
@@ -273,11 +288,11 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                   次の日へ
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-card">
                 <AlertDialogHeader>
                   <AlertDialogTitle>次の日に進みますか？</AlertDialogTitle>
                   <AlertDialogDescription>
-                    一日を終え、新しい日を始めます。すべてのキャラクターの好感度と会話の履歴がリセットされます。
+                    すべてのキャラクターの好感度はそのままで、会話の履歴のみがリセットされます。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -380,6 +395,10 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
 
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>個別デバッグツール</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleCheckUid}>
+                      <Fingerprint className="mr-2 h-4 w-4" />
+                      <span>UIDをチェック</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleTestLogging} disabled={isTestingLogging}>
                       {isTestingLogging ? (
                         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
