@@ -60,14 +60,14 @@ export function useCollection<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   
   const filterKey = options?.filter?.[0];
   const filterOp = options?.filter?.[1];
   const filterValue = options?.filter?.[2];
 
   const queryMemo = useMemo(() => {
-    if (!firestore || !path) return null;
+    if (!firestore || !path || userLoading) return null;
     
     // The filter array itself is a new object on each render, so we need to memoize based on its contents.
     const memoOptions = options ? { ...options } : undefined;
@@ -77,18 +77,22 @@ export function useCollection<T>(
 
     return buildQuery(firestore, path, memoOptions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, firestore, options?.sort, options?.sortDirection, options?.limit, filterKey, filterOp, filterValue, options?.startAfter]);
+  }, [path, firestore, userLoading, options?.sort, options?.sortDirection, options?.limit, filterKey, filterOp, filterValue, options?.startAfter]);
 
   useEffect(() => {
+    if (userLoading) {
+      setLoading(true);
+      return;
+    }
+    
     if (!queryMemo || !path) {
       setLoading(false);
       setData(null);
       return;
     }
-    setLoading(true);
-
+    
     console.log(`[useCollection] Firestore list query initiated. Path: "${path}", User UID: ${user?.uid ?? 'N/A'}`);
-
+    
     const unsubscribe = onSnapshot(
       queryMemo,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -112,7 +116,7 @@ export function useCollection<T>(
     );
 
     return () => unsubscribe();
-  }, [queryMemo, path, onSnapshotCallback, user?.uid]);
+  }, [queryMemo, path, onSnapshotCallback, user?.uid, userLoading]);
 
   return { data, loading, error };
 }
