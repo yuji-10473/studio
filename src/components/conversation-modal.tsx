@@ -42,15 +42,17 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
+
+  const collectionOptions = useMemo(() => ({
+    sort: 'timestamp' as const, 
+    sortDirection: 'desc' as const,
+    limit: 10,
+    filter: ['characterId', '==', characterId] as const
+  }), [characterId]);
   
   const { data: initialMessages, loading: initialLoading, error } = useCollection<Message>(
     conversationPath, 
-    { 
-      sort: 'timestamp', 
-      sortDirection: 'desc',
-      limit: 10,
-      filter: ['characterId', '==', characterId]
-    },
+    collectionOptions,
     (snapshot) => {
        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
        setHasMore(!snapshot.empty && snapshot.docs.length >= 10);
@@ -69,12 +71,9 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     }
   }, [error, setErrorMessage]);
 
-  // This effect handles scrolling. We want to scroll down when new messages are added
-  // but not when loading more old messages at the top.
   const prevMessagesLength = useRef(messages.length);
   useEffect(() => {
     if (viewportRef.current && messages.length > prevMessagesLength.current) {
-        // Only autoscroll if a new message was added, not when loading more.
         viewportRef.current.scrollTo({
         top: viewportRef.current.scrollHeight,
         behavior: 'smooth',
@@ -92,7 +91,7 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
       sort: 'timestamp',
       sortDirection: 'desc',
       limit: 10,
-      filter: ['characterId', '==', characterId],
+      filter: ['characterId', '==', characterId] as const,
       startAfter: lastVisible,
     }).then(({ data: newMessages, lastDoc, hasMore: newHasMore}) => {
         if (newMessages) {

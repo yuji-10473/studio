@@ -21,10 +21,12 @@ import { useFirestore } from '../provider';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
+type Filter = readonly [string, '==', any];
+
 interface UseCollectionOptions {
   sort?: string;
   sortDirection?: 'asc' | 'desc';
-  filter?: [string, '==', any];
+  filter?: Filter;
   limit?: number;
   startAfter?: QueryDocumentSnapshot | null;
 }
@@ -57,12 +59,23 @@ export function useCollection<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
   const firestore = useFirestore();
+  
+  const filterKey = options?.filter?.[0];
+  const filterOp = options?.filter?.[1];
+  const filterValue = options?.filter?.[2];
 
   const queryMemo = useMemo(() => {
     if (!firestore || !path) return null;
-    return buildQuery(firestore, path, options);
+    
+    // The filter array itself is a new object on each render, so we need to memoize based on its contents.
+    const memoOptions = options ? { ...options } : undefined;
+    if (filterKey && filterOp && filterValue !== undefined) {
+        memoOptions!.filter = [filterKey, filterOp, filterValue] as const;
+    }
+
+    return buildQuery(firestore, path, memoOptions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, firestore, options?.sort, options?.sortDirection, options?.limit, ...(options?.filter || []), options?.startAfter]);
+  }, [path, firestore, options?.sort, options?.sortDirection, options?.limit, filterKey, filterOp, filterValue, options?.startAfter]);
 
   useEffect(() => {
     if (!queryMemo || !path) {
@@ -104,8 +117,6 @@ useCollection.fetchMore = async <T>(
     path: string,
     options: UseCollectionOptions
 ): Promise<{ data: T[] | null; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean; }> => {
-    // This is a static method and doesn't have access to hooks.
-    // We need to get a Firestore instance manually.
     const firestore = getFirestore();
     const q = buildQuery(firestore, path, options);
     
