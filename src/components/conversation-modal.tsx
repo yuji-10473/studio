@@ -70,15 +70,13 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
 
     const newMessagesCount = messages.length - prevMessagesLength.current;
 
-    // `loadMore` was triggered if new messages were added and the count is greater than 2
-    // (user message + AI response). This indicates older messages were prepended.
-    const wasLoadMore = newMessagesCount > 0 && prevScrollHeight.current !== null;
-
-    if (wasLoadMore) {
-        // Restore scroll position after loading more items
-        const newScrollHeight = viewport.scrollHeight;
-        viewport.scrollTop = newScrollHeight - prevScrollHeight.current!;
-        prevScrollHeight.current = null; // Reset after restoring
+    // This case handles 'loadMore'
+    if (loadingMore) {
+        prevScrollHeight.current = viewport.scrollHeight - viewport.scrollTop;
+    } else if (newMessagesCount > 0 && prevScrollHeight.current !== null) {
+        // Restore scroll position after loading more
+        viewport.scrollTop = viewport.scrollHeight - prevScrollHeight.current;
+        prevScrollHeight.current = null;
     } else if (newMessagesCount > 0) {
         // New message(s) were added to the end, scroll to bottom
         viewport.scrollTo({
@@ -89,15 +87,12 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
 
     prevMessagesLength.current = messages.length;
 
-  }, [messages]);
+  }, [messages, loadingMore]);
   
   const handleLoadMore = () => {
-    const viewport = viewportRef.current;
-    if (viewport) {
-      // Store current scroll height before loading more
-      prevScrollHeight.current = viewport.scrollHeight;
+    if (!loadingMore && hasMore) {
+      loadMore();
     }
-    loadMore();
   };
 
   if (initialLoading && !messages) {
