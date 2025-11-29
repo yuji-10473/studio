@@ -61,16 +61,12 @@ export function useCollection<T>(
   const [error, setError] = useState<FirestoreError | null>(null);
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
-  
-  const filterKey = options?.filter?.[0];
-  const filterOp = options?.filter?.[1];
-  const filterValue = options?.filter?.[2];
 
   const queryMemo = useMemo(() => {
-    if (!firestore || !path || userLoading) return null;
+    if (!firestore || !path || !user) return null; // Wait for user
     return buildQuery(firestore, path, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, firestore, userLoading, options?.sort, options?.sortDirection, options?.limit, filterKey, filterOp, filterValue, options?.startAfter]);
+  }, [path, firestore, user, options]); // Depend on user and the whole options object
 
   useEffect(() => {
     if (userLoading) {
@@ -78,12 +74,13 @@ export function useCollection<T>(
       return;
     }
     
-    if (!queryMemo || !path || !user) { // Ensure user exists before querying
+    if (!queryMemo || !path || !user) {
       setLoading(false);
       setData(null);
       return;
     }
     
+    setLoading(true);
     console.log(`[useCollection] Firestore list query initiated. Path: "${path}", User UID: ${user.uid}`);
     
     const unsubscribe = onSnapshot(
