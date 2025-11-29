@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
@@ -116,7 +117,7 @@ export function useCollection<T>(
     try {
         const snapshot = await getDocs(q);
         const newDocs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as T[];
-        setData(prev => (prev ? [...prev, ...newDocs] : newDocs));
+        setData(prev => (prev ? [...newDocs, ...prev] : newDocs));
         setLastVisible(snapshot.docs[snapshot.docs.length - 1] ?? null);
         setHasMore(!snapshot.empty && snapshot.docs.length >= (options?.limit ?? 0));
     } catch (err: any) {

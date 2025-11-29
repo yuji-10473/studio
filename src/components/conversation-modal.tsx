@@ -53,37 +53,58 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     loadingMore 
   } = useCollection<Message>(conversationPath, collectionOptions);
 
+  const prevMessagesLength = useRef(messages?.length ?? 0);
+  const prevScrollHeight = useRef<number | null>(null);
+
+
   useEffect(() => {
     if (error) {
       setErrorMessage(error.message);
     }
   }, [error, setErrorMessage]);
 
-  const prevMessagesLength = useRef(messages?.length ?? 0);
+  
   useEffect(() => {
-    if (viewportRef.current && messages) {
-      const newMessagesCount = messages.length - prevMessagesLength.current;
-      // Only scroll to bottom if new messages were added at the end, not loaded at the top.
-      // A positive newMessagesCount indicates new messages. A single "load more" action adds multiple.
-      // A simple heuristic: if only 1 or 2 messages are added, it's a new chat exchange.
-      const isNewMessage = newMessagesCount > 0 && newMessagesCount <= 2;
+    const viewport = viewportRef.current;
+    if (!viewport || !messages) return;
 
-      if (isNewMessage) {
-        viewportRef.current.scrollTo({
-          top: viewportRef.current.scrollHeight,
-          behavior: 'smooth',
+    const newMessagesCount = messages.length - prevMessagesLength.current;
+
+    // `loadMore` was triggered if new messages were added and the count is greater than 2
+    // (user message + AI response). This indicates older messages were prepended.
+    const wasLoadMore = newMessagesCount > 0 && prevScrollHeight.current !== null;
+
+    if (wasLoadMore) {
+        // Restore scroll position after loading more items
+        const newScrollHeight = viewport.scrollHeight;
+        viewport.scrollTop = newScrollHeight - prevScrollHeight.current!;
+        prevScrollHeight.current = null; // Reset after restoring
+    } else if (newMessagesCount > 0) {
+        // New message(s) were added to the end, scroll to bottom
+        viewport.scrollTo({
+            top: viewport.scrollHeight,
+            behavior: 'smooth',
         });
-      }
     }
-    prevMessagesLength.current = messages?.length ?? 0;
-  }, [messages]);
 
+    prevMessagesLength.current = messages.length;
+
+  }, [messages]);
+  
+  const handleLoadMore = () => {
+    const viewport = viewportRef.current;
+    if (viewport) {
+      // Store current scroll height before loading more
+      prevScrollHeight.current = viewport.scrollHeight;
+    }
+    loadMore();
+  };
 
   if (initialLoading && !messages) {
     return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-8 h-8 animate-spin" /></div>
   }
 
-  // Reverse the messages for display (asc order)
+  // Messages from useCollection are desc, reverse for display
   const displayedMessages = messages ? [...messages].reverse() : [];
 
   return (
@@ -91,7 +112,7 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
         <div className="p-4 space-y-4">
         {hasMore && (
              <div className="text-center">
-                <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+                <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
                     {loadingMore ? <LoaderCircle className="w-4 h-4 animate-spin mr-2" /> : <MessageSquarePlus className="w-4 h-4 mr-2" />}
                     もっと見る
                 </Button>
