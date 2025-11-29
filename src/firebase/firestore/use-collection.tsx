@@ -1,4 +1,3 @@
-
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import {
@@ -15,12 +14,12 @@ import {
   limit,
   startAfter,
   getDocs,
-  getFirestore,
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 import { useUser } from '../auth/use-user';
+import { initializeFirebase } from '..';
 
 type Filter = readonly [string, '==', any];
 
@@ -115,7 +114,7 @@ useCollection.fetchMore = async <T>(
     path: string,
     options: UseCollectionOptions
 ): Promise<{ data: T[] | null; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean; }> => {
-    const firestore = getFirestore();
+    const { firestore } = initializeFirebase();
     const q = buildQuery(firestore, path, options);
     
     try {
