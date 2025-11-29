@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, LoaderCircle } from 'lucide-react';
+import { Send, Bot, User, LoaderCircle, Heart } from 'lucide-react';
 import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
@@ -117,10 +117,22 @@ export default function ConversationModal({
   characterState,
   characterId,
 }: ConversationModalProps) {
-  const { sendMessage, isAiResponding, userRole, isSpeaking } = useGameState();
+  const { sendMessage, isAiResponding, userRole, isSpeaking, affectionEvent, clearAffectionEvent } = useGameState();
   const [message, setMessage] = useState('');
+  const [showHeart, setShowHeart] = useState(false);
   
   const isResponding = isAiResponding || isSpeaking;
+
+  useEffect(() => {
+    if (affectionEvent && affectionEvent.characterId === characterId) {
+      setShowHeart(true);
+      const timer = setTimeout(() => {
+        setShowHeart(false);
+        clearAffectionEvent();
+      }, 1500); // Animation is 1.5s
+      return () => clearTimeout(timer);
+    }
+  }, [affectionEvent, characterId, clearAffectionEvent]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -134,10 +146,15 @@ export default function ConversationModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-xl h-[80vh] flex flex-col p-0 gap-0">
         <DialogHeader className="p-4 border-b flex-row items-center space-y-0 gap-4">
-          <Avatar className="h-12 w-12">
-             <AvatarImage src={character.imagePath} alt={character.name} />
-            <AvatarFallback>{character.name.slice(0, 2)}</AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={character.imagePath} alt={character.name} />
+              <AvatarFallback>{character.name.slice(0, 2)}</AvatarFallback>
+            </Avatar>
+            {showHeart && (
+              <Heart className="w-8 h-8 text-pink-500 absolute -top-4 -right-4 animate-float-heart" />
+            )}
+          </div>
           <DialogTitle className="font-headline text-2xl">{character.name}と会話中</DialogTitle>
         </DialogHeader>
         

@@ -68,6 +68,11 @@ export type UserProfile = {
   isAdmin?: boolean; // Kept for logic in use-user, but role is preferred
 }
 
+export type AffectionChangeEvent = {
+  characterId: CharacterId;
+  change: number;
+};
+
 export type GameState = {
   characters: Character[] | null;
   characterStates: Record<CharacterId, CharacterState> | null;
@@ -83,6 +88,7 @@ export type GameState = {
   isSpeaking: boolean;
   enableTTS: boolean; // Text-to-speech setting
   bgmVolume: number;
+  affectionEvent: AffectionChangeEvent | null;
 };
 
 export type GameContextType = GameState & {
@@ -98,4 +104,5 @@ export type GameContextType = GameState & {
   setBgmVolume: (volume: number) => void;
   unlockCharacter: (characterId: CharacterId) => Promise<void>;
   toggleCharacterLock: (characterId: string, isLocked: boolean) => Promise<{ success: boolean, message: string }>;
+  clearAffectionEvent: () => void;
 };

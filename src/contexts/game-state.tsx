@@ -49,6 +49,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     isSpeaking: false,
     enableTTS: false, // Default TTS to off
     bgmVolume: 0.25, // Default BGM Volume
+    affectionEvent: null,
   };
 };
 
@@ -161,6 +162,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     updateState(prev => ({ ...prev, errorMessage: message }));
   }, [updateState]);
 
+  const clearAffectionEvent = useCallback(() => {
+    updateState(prev => ({ ...prev, affectionEvent: null }));
+  }, [updateState]);
+
   const cancelSpeech = useCallback(() => {
     if (speechPingIntervalRef.current) {
       clearInterval(speechPingIntervalRef.current);
@@ -268,7 +273,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         characterId: charId 
     };
 
-    updateState(prev => ({ ...prev, isAiResponding: true }));
+    updateState(prev => ({ ...prev, isAiResponding: true, affectionEvent: null }));
 
     const historyQuery = query(
         conversationHistoryRef,
@@ -307,6 +312,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const currentCharacterState = state.characterStates[charId];
       const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
       const newAffection = Math.max(0, Math.min(100, (currentCharacterState?.affection || 50) + affectionChange));
+
+      if (affectionChange > 0) {
+        updateState(prev => ({
+          ...prev,
+          affectionEvent: { characterId: charId, change: affectionChange },
+        }));
+      }
 
       let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !(currentCharacterState.charmAwarded ?? false);
       
@@ -459,6 +471,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setBgmVolume,
     unlockCharacter,
     toggleCharacterLock,
+    clearAffectionEvent,
   };
 
   return (
