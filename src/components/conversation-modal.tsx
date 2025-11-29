@@ -32,6 +32,7 @@ type ConversationModalProps = {
 
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const scrollHeightBeforeLoad = useRef<number>(0);
   const { setErrorMessage } = useGameState();
   const { user } = useUser();
   
@@ -53,40 +54,29 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     loadingMore 
   } = useCollection<Message>(conversationPath, collectionOptions);
 
-  const prevMessagesLength = useRef(messages?.length ?? 0);
-  const prevScrollHeight = useRef<number | null>(null);
-
-
   useEffect(() => {
     if (error) {
       setErrorMessage(error.message);
     }
   }, [error, setErrorMessage]);
 
-  
   useEffect(() => {
     const viewport = viewportRef.current;
-    if (!viewport || !messages) return;
+    if (!viewport) return;
 
-    const newMessagesCount = messages.length - prevMessagesLength.current;
-
-    // This case handles 'loadMore'
     if (loadingMore) {
-        prevScrollHeight.current = viewport.scrollHeight - viewport.scrollTop;
-    } else if (newMessagesCount > 0 && prevScrollHeight.current !== null) {
-        // Restore scroll position after loading more
-        viewport.scrollTop = viewport.scrollHeight - prevScrollHeight.current;
-        prevScrollHeight.current = null;
-    } else if (newMessagesCount > 0) {
-        // New message(s) were added to the end, scroll to bottom
-        viewport.scrollTo({
-            top: viewport.scrollHeight,
-            behavior: 'smooth',
-        });
+        // --- For "Load More" ---
+        // Before loading more, save the current scroll height and position
+        scrollHeightBeforeLoad.current = viewport.scrollHeight;
+    } else if (scrollHeightBeforeLoad.current > 0) {
+        // After "Load More" has finished, restore scroll position
+        viewport.scrollTop += viewport.scrollHeight - scrollHeightBeforeLoad.current;
+        scrollHeightBeforeLoad.current = 0; // Reset
+    } else {
+        // --- For new messages ---
+        // Otherwise, scroll to the bottom for new messages
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
     }
-
-    prevMessagesLength.current = messages.length;
-
   }, [messages, loadingMore]);
   
   const handleLoadMore = () => {
