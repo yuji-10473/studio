@@ -28,9 +28,10 @@ service cloud.firestore {
     }
     
     // Rules for conversation history
-    // Allow a user to LIST their own conversation history.
+    // Allow a user to LIST their own conversation history with a query limit.
+    // This is required to allow the filter on `characterId` in useCollection.
     match /users/{userId}/conversationHistory {
-      allow list: if request.auth.uid == userId;
+      allow list: if request.auth.uid == userId && request.query.limit <= 10;
     }
     
     // Allow a user to read and write their own individual messages.
