@@ -14,13 +14,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, LoaderCircle, Heart } from 'lucide-react';
+import { Send, Bot, User, LoaderCircle, Heart, MessageSquarePlus } from 'lucide-react';
 import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase';
+import { QueryDocumentSnapshot } from 'firebase/firestore';
 
 type ConversationModalProps = {
   isOpen: boolean;
@@ -35,16 +36,32 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   const { setErrorMessage } = useGameState();
   const { user } = useUser();
   
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
-  // The query is simplified to avoid needing a composite index.
-  // We will filter by characterId on the client side.
-  const { data: conversationHistory, loading, error } = useCollection<Message>(
+  
+  const { data: initialMessages, loading: initialLoading, error } = useCollection<Message>(
     conversationPath, 
     { 
       sort: 'timestamp', 
-      sortDirection: 'asc',
+      sortDirection: 'desc',
+      limit: 10,
+      filter: ['characterId', '==', characterId]
+    },
+    (snapshot) => {
+       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+       setHasMore(!snapshot.empty && snapshot.docs.length >= 10);
     }
   );
+
+  useEffect(() => {
+    if (initialMessages) {
+        setMessages(initialMessages.slice().reverse()); // desc -> asc
+    }
+  }, [initialMessages]);
 
   useEffect(() => {
     if (error) {
@@ -52,30 +69,61 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
     }
   }, [error, setErrorMessage]);
 
-  // Client-side filtering
-  const sortedHistory = useMemo(() => {
-    if (!conversationHistory) return [];
-    return conversationHistory.filter(msg => msg.characterId === characterId);
-  }, [conversationHistory, characterId]);
-
-
+  // This effect handles scrolling. We want to scroll down when new messages are added
+  // but not when loading more old messages at the top.
+  const prevMessagesLength = useRef(messages.length);
   useEffect(() => {
-    if (viewportRef.current) {
+    if (viewportRef.current && messages.length > prevMessagesLength.current) {
+        // Only autoscroll if a new message was added, not when loading more.
         viewportRef.current.scrollTo({
         top: viewportRef.current.scrollHeight,
         behavior: 'smooth',
       });
     }
-  }, [sortedHistory]);
+    prevMessagesLength.current = messages.length;
+  }, [messages]);
 
-  if (loading) {
+
+  const loadMore = () => {
+    if (!lastVisible || !hasMore || isLoadingMore || !conversationPath) return;
+    
+    setIsLoadingMore(true);
+    useCollection.fetchMore<Message>(conversationPath, {
+      sort: 'timestamp',
+      sortDirection: 'desc',
+      limit: 10,
+      filter: ['characterId', '==', characterId],
+      startAfter: lastVisible,
+    }).then(({ data: newMessages, lastDoc, hasMore: newHasMore}) => {
+        if (newMessages) {
+            setMessages(prev => [...newMessages.slice().reverse(), ...prev]);
+        }
+        setLastVisible(lastDoc);
+        setHasMore(newHasMore);
+        setIsLoadingMore(false);
+    }).catch(err => {
+        setErrorMessage(err.message);
+        setIsLoadingMore(false);
+    });
+  }
+
+
+  if (initialLoading && messages.length === 0) {
     return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-8 h-8 animate-spin" /></div>
   }
 
   return (
     <ScrollArea className="flex-grow" viewportRef={viewportRef}>
         <div className="p-4 space-y-4">
-        {sortedHistory.map((msg, index) => (
+        {hasMore && (
+             <div className="text-center">
+                <Button variant="outline" size="sm" onClick={loadMore} disabled={isLoadingMore}>
+                    {isLoadingMore ? <LoaderCircle className="w-4 h-4 animate-spin mr-2" /> : <MessageSquarePlus className="w-4 h-4 mr-2" />}
+                    もっと見る
+                </Button>
+            </div>
+        )}
+        {messages.map((msg, index) => (
           <div
             key={msg.id || index}
             className={cn(
