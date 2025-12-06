@@ -1,3 +1,4 @@
+
 'use client';
 import { createContext, useContext, useMemo } from 'react';
 import type { FirebaseApp } from 'firebase/app';
@@ -8,9 +9,9 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 // Define the shape of the context value
 interface FirebaseContextValue {
-  app: FirebaseApp;
-  auth: Auth;
-  firestore: Firestore;
+  app: FirebaseApp | null;
+  auth: Auth | null;
+  firestore: Firestore | null;
 }
 
 // Create the context with an undefined initial value
@@ -34,6 +35,9 @@ export function FirebaseProvider({
 }) {
   // Memoize the value to prevent unnecessary re-renders
   const memoizedValue = useMemo(() => value, [value]);
+  
+  // Always render the provider, even if Firebase is not initialized.
+  // Hooks like useAuth will check for the nullness of the services.
   return (
     <FirebaseContext.Provider value={memoizedValue}>
       <ErrorBoundary FallbackComponent={FirebaseErrorFallback}>
@@ -47,13 +51,22 @@ export function FirebaseProvider({
 // Custom hook to access the Firebase context
 export function useFirebase() {
   const context = useContext(FirebaseContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider');
   }
   return context;
 }
 
 // Custom hooks for specific Firebase services
-export const useFirebaseApp = () => useFirebase().app;
-export const useAuth = () => useFirebase().auth;
-export const useFirestore = () => useFirebase().firestore;
+export const useFirebaseApp = (): FirebaseApp | null => {
+  const context = useFirebase();
+  return context?.app ?? null;
+};
+export const useAuth = (): Auth | null => {
+  const context = useFirebase();
+  return context?.auth ?? null;
+};
+export const useFirestore = (): Firestore | null => {
+  const context = useFirebase();
+  return context?.firestore ?? null;
+};

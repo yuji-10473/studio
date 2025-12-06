@@ -1,11 +1,30 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
+
+type FirebaseInstances = {
+  app: FirebaseApp | null;
+  auth: Auth | null;
+  firestore: Firestore | null;
+};
+
+let firebaseInstances: FirebaseInstances | null = null;
+
 
 // Initializes and returns the Firebase app, auth, and firestore instances.
 // It ensures that Firebase is initialized only once.
-export function initializeFirebase() {
+export function initializeFirebase(): FirebaseInstances {
+  if (firebaseInstances) {
+    return firebaseInstances;
+  }
+  
+  if (!firebaseConfig.apiKey) {
+    console.warn("Firebase API Key is missing, Firebase functionality will be disabled.");
+    firebaseInstances = { app: null, auth: null, firestore: null };
+    return firebaseInstances;
+  }
+
   const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
   const auth = getAuth(app);
   const firestore = getFirestore(app);
@@ -39,7 +58,8 @@ export function initializeFirebase() {
     }
   }
 
-  return { app, auth, firestore };
+  firebaseInstances = { app, auth, firestore };
+  return firebaseInstances;
 }
 
 // Export the hooks from the provider so they can be used throughout the app.
