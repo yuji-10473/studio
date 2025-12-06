@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { useAuth } from '../provider';
+import { useAuth, useFirestore, useMemoFirebase } from '../provider';
 import type { UserRole } from '@/lib/types';
 import { useDoc } from '../firestore/use-doc';
+import { doc } from 'firebase/firestore';
 
 export interface UserState {
     user: User | null;
@@ -16,9 +17,15 @@ export function useUser(): UserState {
   const [role, setRole] = useState<UserRole>('user');
   const [loading, setLoading] = useState(true);
   const auth = useAuth();
+  const firestore = useFirestore();
+  
+  const adminDocRef = useMemoFirebase(
+    () => (user && firestore ? doc(firestore, 'admins', user.uid) : null),
+    [user, firestore]
+  );
   
   // Get the admin status based on the current user's UID.
-  const { data: adminDoc, loading: adminLoading } = useDoc(user ? `/admins/${user.uid}` : null);
+  const { data: adminDoc, loading: adminLoading } = useDoc(adminDocRef);
 
   useEffect(() => {
     if (!auth) {
