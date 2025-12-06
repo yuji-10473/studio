@@ -14,6 +14,7 @@
  *   - /dailyGoals/{goalId}: A user's personal daily goals.
  *   - /userRewards/{rewardId}: Rewards a user has earned.
  *   - /userPoints/{pointsId}: A user's point total.
+ * - /characters/{characterId}: Global, character data.
  * - /motivationalContent/{contentId}: Global, read-only motivational quotes.
  * - /rewards/{rewardId}: Global, read-only list of available rewards.
  *
@@ -48,6 +49,10 @@ service cloud.firestore {
     // Helper functions for reusable logic
     function isSignedIn() {
       return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     function isOwner(userId) {
@@ -153,6 +158,31 @@ service cloud.firestore {
         allow update: if isUpdatingValidSubcollectionDocument(userId);
         allow delete: if isExistingOwner(userId);
       }
+      
+      /**
+       * @description A user's conversation history with characters.
+       * @path /users/{userId}/conversationHistory/{messageId}
+       */
+      match /conversationHistory/{messageId} {
+          allow read, write: if isOwner(userId);
+      }
+      
+      /**
+       * @description A user's state with characters (affection, etc.).
+       * @path /users/{userId}/characterStates/{characterId}
+       */
+      match /characterStates/{characterId} {
+          allow read, write: if isOwner(userId);
+      }
+    }
+    
+    match /admins/{userId} {
+      allow read: if true;
+    }
+    
+    match /characters/{characterId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -169,6 +199,14 @@ service cloud.firestore {
       allow create: if false;
       allow update: if false;
       allow delete: if false;
+    }
+    
+    match /conversations_errors/{logId} {
+      allow create: if true;
+    }
+    
+    match /debug_writes/{logId} {
+      allow create: if true;
     }
 
     /**
@@ -188,3 +226,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
