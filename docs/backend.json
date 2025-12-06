@@ -1,0 +1,312 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the MotivateMe application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time the user was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "creationDate"
+      ]
+    },
+    "DailyGoal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DailyGoal",
+      "type": "object",
+      "description": "Represents a user's daily productivity goal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the DailyGoal entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N DailyGoal)"
+        },
+        "goalDescription": {
+          "type": "string",
+          "description": "Description of the daily goal."
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Indicates whether the daily goal has been completed."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the goal is set for.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "goalDescription",
+        "isCompleted",
+        "date"
+      ]
+    },
+    "MotivationalContent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MotivationalContent",
+      "type": "object",
+      "description": "Represents a piece of motivational content, such as a quote or image.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MotivationalContent entity."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "The type of content (e.g., 'quote', 'image')."
+        },
+        "content": {
+          "type": "string",
+          "description": "The actual motivational content (e.g., the text of a quote, URL of an image)."
+        },
+        "author": {
+          "type": "string",
+          "description": "The author of the motivational content (if applicable)."
+        }
+      },
+      "required": [
+        "id",
+        "contentType",
+        "content"
+      ]
+    },
+    "Reward": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reward",
+      "type": "object",
+      "description": "Represents a reward that can be earned by the user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Reward entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the reward."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the reward."
+        },
+        "pointsRequired": {
+          "type": "number",
+          "description": "The number of points required to redeem this reward."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "pointsRequired"
+      ]
+    },
+    "UserReward": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserReward",
+      "type": "object",
+      "description": "Represents the rewards earned by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserReward entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N UserReward)"
+        },
+        "rewardId": {
+          "type": "string",
+          "description": "Reference to Reward. (Relationship: Reward 1:N UserReward)"
+        },
+        "dateEarned": {
+          "type": "string",
+          "description": "The date the reward was earned.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "rewardId",
+        "dateEarned"
+      ]
+    },
+    "UserPoints": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPoints",
+      "type": "object",
+      "description": "Represents the points a user has accumulated.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserPoints entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 UserPoints)"
+        },
+        "points": {
+          "type": "number",
+          "description": "The number of points the user has."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "The last time the points were updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "points",
+        "lastUpdated"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.  Authorization is based on the `userId` parameter.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/dailyGoals/{dailyGoalId}",
+        "definition": {
+          "entityName": "DailyGoal",
+          "schema": {
+            "$ref": "#/backend/entities/DailyGoal"
+          },
+          "description": "Stores daily goals for each user. Authorization is based on the `userId` parameter, ensuring only the user can access their own goals.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "dailyGoalId",
+              "description": "The unique identifier of the daily goal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/motivationalContent/{motivationalContentId}",
+        "definition": {
+          "entityName": "MotivationalContent",
+          "schema": {
+            "$ref": "#/backend/entities/MotivationalContent"
+          },
+          "description": "Stores motivational content available to all users.  No specific authorization is required beyond basic read access.",
+          "params": [
+            {
+              "name": "motivationalContentId",
+              "description": "The unique identifier of the motivational content."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/rewards/{rewardId}",
+        "definition": {
+          "entityName": "Reward",
+          "schema": {
+            "$ref": "#/backend/entities/Reward"
+          },
+          "description": "Stores rewards available to all users. No specific authorization is required beyond basic read access.",
+          "params": [
+            {
+              "name": "rewardId",
+              "description": "The unique identifier of the reward."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/userRewards/{userRewardId}",
+        "definition": {
+          "entityName": "UserReward",
+          "schema": {
+            "$ref": "#/backend/entities/UserReward"
+          },
+          "description": "Stores rewards earned by each user. Authorization is based on the `userId` parameter, ensuring only the user can access their own rewards.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "userRewardId",
+              "description": "The unique identifier of the user reward."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/userPoints/{userPointsId}",
+        "definition": {
+          "entityName": "UserPoints",
+          "schema": {
+            "$ref": "#/backend/entities/UserPoints"
+          },
+          "description": "Stores the points accumulated by each user. Authorization is based on the `userId` parameter, ensuring only the user can access their own points.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "userPointsId",
+              "description": "The unique identifier of the user points."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the 'MotivateMe' application, focusing on user productivity through goal setting, progress tracking, motivational content, and a reward system. The design prioritizes security, scalability, and debuggability by adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It employs denormalization, structural segregation, and consistent access modeling.\n\n**Authorization Independence (CRITICAL):**\nTo avoid hierarchical authorization dependencies and ensure atomic operations, the structure denormalizes authorization data.  For example, DailyGoals, UserRewards and UserPoints are stored as subcollections of users to explicitly associate data with the user.\n\n**Structural Segregation (Homogeneous Security Posture):**\nThe data is segregated into collections based on access requirements. User-specific data is stored under the `/users/{userId}` path, while global data like `MotivationalContent` is stored in a root collection. This segregation simplifies security rules by ensuring that all documents within a collection share the same security posture.\n\n**Access Modeling (Standardization and Consistency):**\nPath-based ownership is used for private user data (e.g., `/users/{userId}/dailyGoals/{dailyGoalId}`). This model simplifies security rules, making it easy to enforce that only the user can access their own data.\n\n**QAPs (Rules are not Filters):**\nThe structure facilitates secure `list` operations by storing data with similar access control requirements in the same collections. For instance, listing daily goals is restricted to the specific user's goals under their respective user ID, avoiding the need for complex filtering within security rules.\n\n**Invariants:**\nThe structure supports invariants such as ownership by using path-based ownership for user-related data. Timestamps can be enforced within security rules by validating the `creationDate` and `lastUpdated` fields upon document creation or modification.\n"
+  }
+}

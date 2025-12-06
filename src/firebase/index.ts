@@ -1,76 +1,50 @@
-import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
-import { firebaseConfig } from './config';
+'use client';
 
-type FirebaseInstances = {
-  app: FirebaseApp | null;
-  auth: Auth | null;
-  firestore: Firestore | null;
-};
+import { firebaseConfig } from '@/firebase/config';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore'
 
-let firebaseInstances: FirebaseInstances | null = null;
-
-
-// Initializes and returns the Firebase app, auth, and firestore instances.
-// It ensures that Firebase is initialized only once.
-export function initializeFirebase(): FirebaseInstances {
-  if (firebaseInstances) {
-    return firebaseInstances;
-  }
-  
-  if (!firebaseConfig.apiKey) {
-    console.warn("Firebase API Key is missing, Firebase functionality will be disabled.");
-    firebaseInstances = { app: null, auth: null, firestore: null };
-    return firebaseInstances;
-  }
-
-  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  const auth = getAuth(app);
-  const firestore = getFirestore(app);
-
-  if (process.env.NEXT_PUBLIC_EMULATOR_HOST) {
-    // These environment variables are set by the `firebase emulators:exec` command
-    // when running the Next.js dev server.
-    const host = process.env.NEXT_PUBLIC_EMULATOR_HOST;
-    const authPort = process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT || 9099;
-    const firestorePort = process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080;
-
-    // It's recommended to use 127.0.0.1 for the host instead of `host`
-    // to avoid potential issues with IPv6.
-    const emulatorHost = '127.0.0.1';
-
+// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+export function initializeFirebase() {
+  if (!getApps().length) {
+    // Important! initializeApp() is called without any arguments because Firebase App Hosting
+    // integrates with the initializeApp() function to provide the environment variables needed to
+    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
+    // without arguments.
+    let firebaseApp;
     try {
-       // @ts-ignore
-      if (!auth.emulatorConfig) {
-        connectAuthEmulator(auth, `http://${emulatorHost}:${authPort}`);
-      }
+      // Attempt to initialize via Firebase App Hosting environment variables
+      firebaseApp = initializeApp();
     } catch (e) {
-      console.log(e);
-    }
-    try {
-      // @ts-ignore
-      if (!firestore.emulatorConfig) {
-        connectFirestoreEmulator(firestore, emulatorHost, Number(firestorePort));
+      // Only warn in production because it's normal to use the firebaseConfig to initialize
+      // during development
+      if (process.env.NODE_ENV === "production") {
+        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
-    } catch (e) {
-      console.log(e);
+      firebaseApp = initializeApp(firebaseConfig);
     }
+
+    return getSdks(firebaseApp);
   }
 
-  firebaseInstances = { app, auth, firestore };
-  return firebaseInstances;
+  // If already initialized, return the SDKs with the already initialized App
+  return getSdks(getApp());
 }
 
-// Export the hooks from the provider so they can be used throughout the app.
-export {
-  useFirebase,
-  useFirebaseApp,
-  useAuth,
-  useFirestore,
-  FirebaseProvider,
-} from './provider';
-export { FirebaseClientProvider } from './client-provider';
-export { useCollection } from './firestore/use-collection';
-export { useDoc } from './firestore/use-doc';
-export { useUser } from './auth/use-user';
+export function getSdks(firebaseApp: FirebaseApp) {
+  return {
+    firebaseApp,
+    auth: getAuth(firebaseApp),
+    firestore: getFirestore(firebaseApp)
+  };
+}
+
+export * from './provider';
+export * from './client-provider';
+export * from './firestore/use-collection';
+export * from './firestore/use-doc';
+export * from './non-blocking-updates';
+export * from './non-blocking-login';
+export * from './errors';
+export * from './error-emitter';

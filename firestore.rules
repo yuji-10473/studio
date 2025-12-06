@@ -1,56 +1,190 @@
-
+/**
+ * This ruleset enforces a strict user-ownership model for a motivational app.
+ * It ensures that all user-generated data, such as goals, points, and earned
+ * rewards, is private and can only be accessed by the user who created it.
+ *
+ * Core Philosophy:
+ * The security model is centered on user privacy and data isolation. Each user's
+ * data is stored in a private data tree, and they are the sole manager of that
+ * data. Publicly accessible content, like general rewards and motivational
+ * quotes, is segregated into separate collections and made read-only for clients.
+ *
+ * Data Structure:
+ * - /users/{userId}: The root for all private user data.
+ *   - /dailyGoals/{goalId}: A user's personal daily goals.
+ *   - /userRewards/{rewardId}: Rewards a user has earned.
+ *   - /userPoints/{pointsId}: A user's point total.
+ * - /motivationalContent/{contentId}: Global, read-only motivational quotes.
+ * - /rewards/{rewardId}: Global, read-only list of available rewards.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only access documents within their own
+ *   `/users/{userId}` path. Cross-user access is strictly forbidden.
+ * - No User Listing: To protect user privacy, it is impossible for any client
+ *   to list all documents in the top-level `/users` collection.
+ * - Read-Only Global Content: The `/rewards` and `/motivationalContent`
+ *   collections are publicly readable by any signed-in user but cannot be
+ *   modified by clients. This assumes they are populated via a trusted server
+ *   process or the Firebase console.
+ * - Self-Service Profile: Users are permitted to create their own user profile
+ *   document upon signup, but cannot modify critical identifiers afterward.
+ *
+ * Denormalization for Authorization:
+ * Each user-specific document (e.g., DailyGoal) contains a denormalized `userId`
+ * field. The rules enforce that this field matches the `userId` in the path,
+ * ensuring data integrity and preventing documents from being associated with
+ * the wrong user. This avoids costly `get()` calls and simplifies rule logic.
+ *
+ * Structural Segregation:
+ * Private user data is strictly segregated into subcollections under
+ * `/users/{userId}`. Publicly readable data is placed in separate top-level
+ * collections (`/motivationalContent`, `/rewards`). This separation creates a
+ * clear security boundary and enables efficient, secure queries.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // For testing purposes, allow anyone to read and write to the debug_writes collection.
-    match /debug_writes/{docId} {
-      allow read, write: if true;
+
+    // Helper functions for reusable logic
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // For debugging conversations, allow writes to conversations and conversations_errors.
-    match /conversations/{docId} {
-      allow write: if true;
-    }
-    match /conversations_errors/{docId} {
-      allow write: if true;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- User Profile, States, and History Rules ---
+    // Use for update/delete to ensure the document exists before the operation.
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that a user is creating their own user document and that the
+     * document's internal `id` field correctly matches their UID.
+     */
+    function isCreatingValidUserDocument(userId) {
+      return isOwner(userId) && request.resource.data.id == userId;
+    }
+
+
+
+    /**
+     * Validates that a user is updating their own document and prevents them
+     * from changing the immutable `id` field.
+     */
+    function isUpdatingValidUserDocument(userId) {
+      let isImmutableId = request.resource.data.id == resource.data.id;
+      return isExistingOwner(userId) && isImmutableId;
+    }
+
+    /**
+     * Validates that a user is creating a document in their own subcollection
+     * and that the document's internal `userId` field correctly matches their UID.
+     */
+    function isCreatingValidSubcollectionDocument(userId) {
+      return isOwner(userId) && request.resource.data.userId == userId;
+    }
+
+    /**
+     * Validates that a user is updating a document in their own subcollection and
+     * prevents them from changing the immutable `userId` field.
+     */
+    function isUpdatingValidSubcollectionDocument(userId) {
+      let isImmutableUserId = request.resource.data.userId == resource.data.userId;
+      return isExistingOwner(userId) && isImmutableUserId;
+    }
+
+    /**
+     * @description Manages user profile documents.
+     * @path /users/{userId}
+     * @allow (create) A new user signing up: `auth.uid` matches `{userId}`.
+     * @deny (get) Another user trying to read this profile.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth.uid == userId;
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isCreatingValidUserDocument(userId);
+      allow update: if isUpdatingValidUserDocument(userId);
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description A user's private daily goals.
+       * @path /users/{userId}/dailyGoals/{dailyGoalId}
+       * @allow (create) The user creating a new goal for themselves.
+       * @deny (list) Another user trying to list this user's goals.
+       * @principle Enforces strict document ownership within a user's data tree.
+       */
+      match /dailyGoals/{dailyGoalId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isCreatingValidSubcollectionDocument(userId);
+        allow update: if isUpdatingValidSubcollectionDocument(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Records of rewards earned by a user.
+       * @path /users/{userId}/userRewards/{userRewardId}
+       * @allow (get) The user reading one of their earned rewards.
+       * @deny (update) Another user trying to modify this user's earned reward.
+       * @principle Enforces strict document ownership within a user's data tree.
+       */
+      match /userRewards/{userRewardId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isCreatingValidSubcollectionDocument(userId);
+        allow update: if isUpdatingValidSubcollectionDocument(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description A user's accumulated points.
+       * @path /users/{userId}/userPoints/{userPointsId}
+       * @allow (list) The user listing their own points documents.
+       * @deny (create) Another user trying to create a points document for this user.
+       * @principle Enforces strict document ownership within a user's data tree.
+       */
+      match /userPoints/{userPointsId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isCreatingValidSubcollectionDocument(userId);
+        allow update: if isUpdatingValidSubcollectionDocument(userId);
+        allow delete: if isExistingOwner(userId);
+      }
     }
 
-    match /users/{userId}/characterStates/{characterId} {
-      // Allow a user to read and write their own character states
-      allow list, read, create, update, delete: if request.auth.uid == userId;
+    /**
+     * @description Stores global motivational content available to all users.
+     * @path /motivationalContent/{motivationalContentId}
+     * @allow (get) Any signed-in user reading a piece of content.
+     * @deny (create) Any client attempting to add new content.
+     * @principle Provides public read access while preventing client-side modification of shared data.
+     */
+    match /motivationalContent/{motivationalContentId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      // This collection is managed by a backend process, not by clients.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // Allow a user to list and manage their own conversation history messages.
-    match /users/{userId}/conversationHistory/{messageId} {
-      allow list, get, create, update, delete: if request.auth.uid == userId;
-    }
-
-    // --- Admins Rules ---
-    // Allow any authenticated user to read the admins collection to check for admin status.
-    // Deny all client-side writes for security. Admin status should only be changed from the Firebase Console.
-    match /admins/{adminId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-    
-    // --- Character Rules ---
-    // Allow ANY user (authenticated or not) to read and list characters.
-    match /characters/{characterId} {
-      allow read, list: if true;
-      // Allow ANYONE to write for debugging purposes.
-      allow write: if true;
-    }
-    
-    // By default, disallow all other reads and writes.
-    match /{path=**} {
-      allow read, write: if false;
+    /**
+     * @description Stores the list of rewards available for users to earn.
+     * @path /rewards/{rewardId}
+     * @allow (list) Any signed-in user listing all available rewards.
+     * @deny (update) Any client attempting to change a reward's details.
+     * @principle Provides public read access while preventing client-side modification of shared data.
+     */
+    match /rewards/{rewardId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      // This collection is managed by a backend process, not by clients.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
