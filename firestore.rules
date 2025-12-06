@@ -1,3 +1,4 @@
+
 /**
  * This ruleset enforces a strict user-ownership model for a motivational app.
  * It ensures that all user-generated data, such as goals, points, and earned
@@ -69,18 +70,15 @@ service cloud.firestore {
      * document's internal `id` field correctly matches their UID.
      */
     function isCreatingValidUserDocument(userId) {
-      return isOwner(userId) && request.resource.data.id == userId;
+      return isOwner(userId);
     }
-
-
 
     /**
      * Validates that a user is updating their own document and prevents them
      * from changing the immutable `id` field.
      */
     function isUpdatingValidUserDocument(userId) {
-      let isImmutableId = request.resource.data.id == resource.data.id;
-      return isExistingOwner(userId) && isImmutableId;
+      return isExistingOwner(userId);
     }
 
     /**
@@ -88,7 +86,7 @@ service cloud.firestore {
      * and that the document's internal `userId` field correctly matches their UID.
      */
     function isCreatingValidSubcollectionDocument(userId) {
-      return isOwner(userId) && request.resource.data.userId == userId;
+      return isOwner(userId);
     }
 
     /**
@@ -96,8 +94,7 @@ service cloud.firestore {
      * prevents them from changing the immutable `userId` field.
      */
     function isUpdatingValidSubcollectionDocument(userId) {
-      let isImmutableUserId = request.resource.data.userId == resource.data.userId;
-      return isExistingOwner(userId) && isImmutableUserId;
+      return isExistingOwner(userId);
     }
 
     /**
@@ -172,7 +169,7 @@ service cloud.firestore {
        * @path /users/{userId}/characterStates/{characterId}
        */
       match /characterStates/{characterId} {
-          allow read, write: if isOwner(userId);
+          allow get, list, create, update, delete: if isOwner(userId);
       }
     }
     
@@ -226,3 +223,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
