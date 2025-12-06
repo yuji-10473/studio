@@ -11,6 +11,7 @@ import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Timestamp, doc, setDoc, getDoc, writeBatch, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { toggleCharacterLock as toggleCharacterLockAction } from '@/actions/character';
+import { useMemoFirebase } from '@/firebase/provider';
 
 const CHARM_THRESHOLD = 80;
 const CHARM_AWARD = 10;
@@ -58,7 +59,8 @@ const GameStateContext = createContext<GameContextType | undefined>(undefined);
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const { user, role: userRole, loading: userLoading } = useUser();
   const firestore = useFirestore();
-  const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>('characters');
+  const charactersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'characters') : null, [firestore]);
+  const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>(charactersCollection);
   
   const userProfilePath = useMemo(() => (user ? `users/${user.uid}` : null), [user]);
   const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(userProfilePath);
@@ -488,3 +490,5 @@ export const useGameState = (): GameContextType => {
   }
   return context;
 };
+
+    
