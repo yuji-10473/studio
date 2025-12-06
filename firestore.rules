@@ -181,7 +181,7 @@ service cloud.firestore {
     }
     
     match /characters/{characterId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
@@ -226,5 +226,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
