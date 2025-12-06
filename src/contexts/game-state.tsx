@@ -63,10 +63,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>(charactersCollection);
   
   const userProfilePath = useMemo(() => (user ? `users/${user.uid}` : null), [user]);
-  const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(userProfilePath);
+  const userProfileDocRef = useMemoFirebase(() => (firestore && userProfilePath ? doc(firestore, userProfilePath) : null), [firestore, userProfilePath]);
+  const { data: userProfile, loading: userProfileLoading } = useDoc<UserProfile>(userProfileDocRef);
   
   const characterStatesPath = useMemo(() => (user ? `users/${user.uid}/characterStates` : null), [user]);
-  const { data: characterStatesFromDb, loading: characterStatesLoading } = useCollection<CharacterState>(characterStatesPath);
+  const characterStatesCollectionRef = useMemoFirebase(() => (firestore && characterStatesPath ? collection(firestore, characterStatesPath) : null), [firestore, characterStatesPath]);
+  const { data: characterStatesFromDb, loading: characterStatesLoading } = useCollection<CharacterState>(characterStatesCollectionRef);
 
   const [state, setState] = useState<GameState>(createInitialState(null, null));
   const { toast } = useToast();
@@ -490,5 +492,7 @@ export const useGameState = (): GameContextType => {
   }
   return context;
 };
+
+    
 
     
