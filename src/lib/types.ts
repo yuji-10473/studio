@@ -100,7 +100,7 @@ export type GameContextType = GameState & {
   startPersonaEdit: (characterId: CharacterId) => void;
   endPersonaEdit: () => void;
   sendMessage: (text: string) => void;
-  updateCharacterPersona: (characterId: CharacterId, description: string) => void;
+  updateCharacterPersona: (characterId: CharacterId, data: Partial<Character>) => Promise<void>;
   stayAtInn: () => void;
   setErrorMessage: (message: string) => void;
   speak: (text: string, onEnd?: () => void) => void;

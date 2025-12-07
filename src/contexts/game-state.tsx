@@ -66,9 +66,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   
   const charactersCollection = useMemoFirebase(() => {
-    if (!firestore || userLoading) return null;
+    if (!firestore) return null;
+    // No longer wait for userLoading, allow anonymous reads.
     return collection(firestore, 'characters');
-  }, [firestore, userLoading]);
+  }, [firestore]);
+
 
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>(charactersCollection);
   
@@ -398,22 +400,22 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     }
   }, [state, updateState, toast, setErrorMessage, firestore, user, speak]);
 
-  const updateCharacterPersona = useCallback(async (characterId: CharacterId, description: string) => {
+  const updateCharacterPersona = useCallback(async (characterId: CharacterId, data: Partial<Character>) => {
     if (!firestore) return;
     const characterDocRef = doc(firestore, 'characters', characterId);
     try {
-      await updateDoc(characterDocRef, { description });
-      toast({ title: "ペルソナ更新", description: `${characterId}のペルソナを更新しました。`});
+      await updateDoc(characterDocRef, data);
     } catch (error) {
         const permissionError = new FirestorePermissionError({
             path: characterDocRef.path,
             operation: 'update',
-            requestResourceData: { description },
+            requestResourceData: data,
         }, error);
         errorEmitter.emit('permission-error', permissionError);
-        setErrorMessage(`ペルソナの更新に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+        // Re-throw the error to be caught by the calling component
+        throw error;
     }
-  }, [firestore, toast, setErrorMessage]);
+  }, [firestore]);
 
   const stayAtInn = useCallback(async () => {
     if (!firestore || !user || !state.characterStates) return;
