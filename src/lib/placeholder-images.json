@@ -1,40 +1,41 @@
+
 {
   "placeholderImages": [
     {
       "id": "elara-image",
-      "path": "/images/icons/icon1.png",
+      "path": "/images/icons/icon1b.png",
       "description": "A kind-looking baker woman with a warm smile, standing in a rustic bakery.",
       "imageHint": "baker woman"
     },
     {
       "id": "leon-image",
-      "path": "/images/icons/icon2.png",
+      "path": "/images/icons/icon2b.png",
       "description": "A stern but noble-looking fantasy guard in armor, standing before a castle gate.",
       "imageHint": "fantasy guard"
     },
     {
       "id": "seraphina-image",
-      "path": "/images/icons/icon3.png",
+      "path": "/images/icons/icon3b.png",
       "description": "A mysterious female wizard in a dark robe, holding a glowing orb in a forest.",
       "imageHint": "fantasy wizard"
     },
     {
       "id": "new-character-image",
-      "path": "/images/icons/icon4.png",
+      "path": "/images/icons/icon4b.png",
       "description": "A generic fantasy character portrait.",
       "imageHint": "fantasy portrait"
     }
   ],
   "selectableIcons": [
-    { "id": "icon1", "path": "/images/icons/icon1.png" },
-    { "id": "icon2", "path": "/images/icons/icon2.png" },
-    { "id": "icon3", "path": "/images/icons/icon3.png" },
-    { "id": "icon4", "path": "/images/icons/icon4.png" },
-    { "id": "icon5", "path": "/images/icons/icon5.png" },
-    { "id": "icon6", "path": "/images/icons/icon6.png" },
-    { "id": "icon7", "path": "/images/icons/icon7.png" },
-    { "id": "icon8", "path": "/images/icons/icon8.png" },
-    { "id": "icon9", "path": "/images/icons/icon9.png" },
-    { "id": "icon10", "path": "/images/icons/icon10.png" }
+    { "id": "icon1", "path": "/images/icons/icon1b.png" },
+    { "id": "icon2", "path": "/images/icons/icon2b.png" },
+    { "id": "icon3", "path": "/images/icons/icon3b.png" },
+    { "id": "icon4", "path": "/images/icons/icon4b.png" },
+    { "id": "icon5", "path": "/images/icons/icon5b.png" },
+    { "id": "icon6", "path": "/images/icons/icon6b.png" },
+    { "id": "icon7", "path": "/images/icons/icon7b.png" },
+    { "id": "icon8", "path": "/images/icons/icon8b.png" },
+    { "id": "icon9", "path": "/images/icons/icon9b.png" },
+    { "id": "icon10", "path": "/images/icons/icon10b.png" }
   ]
 }

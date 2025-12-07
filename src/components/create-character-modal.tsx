@@ -32,7 +32,6 @@ const characterSchema = z.object({
   introduction: z.string().min(1, { message: '紹介文は必須です。' }).max(100, { message: '紹介文は100文字以内です。'}),
   description: z.string().min(1, { message: 'ペルソナは必須です。' }).max(500, { message: 'ペルソナは500文字以内です。'}),
   imagePath: z.string({ required_error: 'アイコンを選択してください。' }),
-  imagePathHighAffection: z.string().optional(),
   isLocked: z.boolean().default(false),
   unlockCost: z.coerce.number().int().min(0, { message: '0以上の数値を入力してください。' }).optional(),
 });
@@ -56,7 +55,6 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
       introduction: '',
       description: '',
       imagePath: SelectableIcons.length > 0 ? SelectableIcons[0].path : undefined,
-      imagePathHighAffection: SelectableIcons.length > 0 ? SelectableIcons[0].path : undefined,
       isLocked: false,
       unlockCost: 0,
     },
@@ -73,9 +71,14 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
   const onSubmit = async (data: CharacterFormValues) => {
     setIsSubmitting(true);
     setErrorMessage('');
+    
+    // Based on the selected imagePath (e.g., /images/icons/icon1b.png),
+    // automatically generate the high affection path (e.g., /images/icons/icon1a.png).
+    const imagePathHighAffection = data.imagePath.replace('b.png', 'a.png');
 
     const characterData = {
       ...data,
+      imagePathHighAffection: imagePathHighAffection,
       unlockCost: data.isLocked ? data.unlockCost || 0 : 0,
     };
 
@@ -108,7 +111,10 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
               name="imagePath"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>アイコンを選択 (通常時)</FormLabel>
+                  <FormLabel>アイコンを選択</FormLabel>
+                   <FormDescription>
+                    ここで選択したアイコン(例: `icon1b.png`)を元に、好感度高のアイコン(例: `icon1a.png`)が自動的に設定されます。
+                  </FormDescription>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -127,44 +133,6 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
                              <Image
                                 src={icon.path}
                                 alt={`Icon ${icon.id}`}
-                                width={80}
-                                height={80}
-                                className="rounded-md"
-                              />
-                          </FormLabel>
-                        </FormItem>
-                      ))}
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="imagePathHighAffection"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>アイコンを選択 (好感度高)</FormLabel>
-                   <FormDescription>好感度が80以上になるとこちらのアイコンに切り替わります。</FormDescription>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-5 gap-4"
-                    >
-                      {SelectableIcons.map((icon) => (
-                        <FormItem key={`high-${icon.id}`} className="flex items-center justify-center">
-                          <FormControl>
-                            <RadioGroupItem value={icon.path} id={`high-${icon.id}`} className="sr-only" />
-                          </FormControl>
-                          <FormLabel
-                            htmlFor={`high-${icon.id}`}
-                            className="cursor-pointer rounded-lg border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                          >
-                             <Image
-                                src={icon.path}
-                                alt={`High Affection Icon ${icon.id}`}
                                 width={80}
                                 height={80}
                                 className="rounded-md"
