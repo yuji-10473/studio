@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { LoaderCircle } from 'lucide-react';
 import Login from '@/components/login';
 import GuideCharacter from '@/components/app-guide';
 import GuideConversationModal from '@/components/guide-conversation-modal';
+import PersonaEditorModal from '@/components/persona-editor-modal';
 
 function MotivateTalesApp() {
   const { 
@@ -69,6 +71,7 @@ function MotivateTalesApp() {
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}
       />
+      <PersonaEditorModal />
       <DebugError message={errorMessage} onClose={() => setErrorMessage('')} />
     </div>
   );

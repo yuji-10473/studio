@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import type { Character, CharacterState } from '@/lib/types';
 import { useGameState } from '@/contexts/game-state';
-import { Lock, Sparkles, LoaderCircle, Zap } from 'lucide-react';
+import { Lock, Sparkles, LoaderCircle, Zap, Bot } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,9 +16,10 @@ type CharacterCardProps = {
   character: Character;
   characterState: CharacterState;
   onTalk: () => void;
+  onEditPersona: () => void;
 };
 
-export default function CharacterCard({ character, characterState, onTalk }: CharacterCardProps) {
+export default function CharacterCard({ character, characterState, onTalk, onEditPersona }: CharacterCardProps) {
   const { user, charm, unlockCharacter, toggleCharacterLock, userRole, setErrorMessage } = useGameState();
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isTogglingLock, setIsTogglingLock] = useState(false);
@@ -98,14 +99,20 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
             </Button>
         )}
         {userRole === 'admin' && (
-          <Button variant="destructive" size="sm" className="w-full" onClick={handleToggleLock} disabled={isTogglingLock}>
-            {isTogglingLock ? (
-              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Zap className="mr-2 h-4 w-4" />
-            )}
-            デバッグ: ロック切り替え
-          </Button>
+          <div className='flex gap-2 w-full'>
+            <Button variant="secondary" size="sm" className="w-full" onClick={onEditPersona}>
+                <Bot className="mr-2 h-4 w-4" />
+                ペルソナ編集
+            </Button>
+            <Button variant="destructive" size="sm" className="w-full" onClick={handleToggleLock} disabled={isTogglingLock}>
+              {isTogglingLock ? (
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="mr-2 h-4 w-4" />
+              )}
+              ロック切替
+            </Button>
+          </div>
         )}
       </CardFooter>
     </Card>

@@ -80,6 +80,7 @@ export type GameState = {
   charm: number;
   gameDate: number;
   activeConversation: CharacterId | null;
+  editingPersonaCharacterId: CharacterId | null;
   isAiResponding: boolean;
   errorMessage: string;
   user: User | null;
@@ -96,6 +97,8 @@ export type GameState = {
 export type GameContextType = GameState & {
   startConversation: (characterId: CharacterId) => void;
   endConversation: () => void;
+  startPersonaEdit: (characterId: CharacterId) => void;
+  endPersonaEdit: () => void;
   sendMessage: (text: string) => void;
   updateCharacterPersona: (characterId: CharacterId, description: string) => void;
   stayAtInn: () => void;

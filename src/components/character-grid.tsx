@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useGameState } from '@/contexts/game-state';
@@ -5,7 +6,7 @@ import CharacterCard from './character-card';
 import { CharacterId } from '@/lib/types';
 
 export default function CharacterGrid() {
-  const { characters, characterStates, startConversation } = useGameState();
+  const { characters, characterStates, startConversation, startPersonaEdit } = useGameState();
 
   if (!characters || !characterStates) {
     return null; // Or a loading indicator
@@ -23,6 +24,7 @@ export default function CharacterGrid() {
             character={character}
             characterState={characterStates[character.id]}
             onTalk={() => startConversation(character.id!)}
+            onEditPersona={() => startPersonaEdit(character.id!)}
           />
         );
       })}

@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User, LoaderCircle, Heart } from 'lucide-react';
-import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -102,7 +101,7 @@ export default function ConversationModal({
   characterState: CharacterState;
   characterId: CharacterId;
 }) {
-  const { sendMessage, isAiResponding, userRole, isSpeaking, affectionEvent, clearAffectionEvent, setErrorMessage, conversationUpdateTrigger } = useGameState();
+  const { sendMessage, isAiResponding, isSpeaking, affectionEvent, clearAffectionEvent, setErrorMessage, conversationUpdateTrigger } = useGameState();
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<Message[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -207,12 +206,6 @@ export default function ConversationModal({
                      <LoaderCircle className="w-5 h-5 animate-spin text-muted-foreground" />
                  </div>
              </div>
-        )}
-        
-        {userRole === 'admin' && (
-          <div className="p-4 border-t">
-            <PersonaEditor character={character} characterId={characterId} />
-          </div>
         )}
 
         <DialogFooter className="p-4 border-t">

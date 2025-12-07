@@ -44,6 +44,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     charm: 0,
     gameDate: 1,
     activeConversation: null,
+    editingPersonaCharacterId: null,
     isAiResponding: false,
     errorMessage: '',
     user: null, // Will be populated by useUser
@@ -64,11 +65,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const { user, role: userRole, loading: userLoading } = useUser();
   const firestore = useFirestore();
   
-  // Wait until user loading is complete before attempting to fetch characters
   const charactersCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || userLoading) return null;
     return collection(firestore, 'characters');
-  }, [firestore]);
+  }, [firestore, userLoading]);
 
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>(charactersCollection);
   
@@ -287,6 +287,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         bgmAudioRef.current.currentTime = 0;
     }
   }, [updateState, cancelSpeech]);
+
+  const startPersonaEdit = useCallback((characterId: CharacterId) => {
+    updateState(prev => ({ ...prev, editingPersonaCharacterId: characterId }));
+  }, [updateState]);
+
+  const endPersonaEdit = useCallback(() => {
+    updateState(prev => ({ ...prev, editingPersonaCharacterId: null }));
+  }, [updateState]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!state.activeConversation || !text.trim() || state.isAiResponding || !state.characters || !state.characterStates || !firestore || !user || !state.userProfile) return;
@@ -580,6 +588,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     ...state,
     startConversation,
     endConversation,
+    startPersonaEdit,
+    endPersonaEdit,
     sendMessage,
     updateCharacterPersona,
     stayAtInn,
@@ -608,5 +618,3 @@ export const useGameState = (): GameContextType => {
   }
   return context;
 };
-
-    
