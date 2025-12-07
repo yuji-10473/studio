@@ -21,7 +21,7 @@ export default function AdBanner() {
   }, []);
 
   return (
-    <Card className="my-6 flex justify-center items-center text-muted-foreground p-2 min-h-[60px] bg-card/80">
+    <Card className="my-6 flex justify-center items-center text-muted-foreground p-2 bg-card/80">
       <ins
         className="adsbygoogle"
         style={{ display: 'block', width: '100%', textAlign: 'center' }}
