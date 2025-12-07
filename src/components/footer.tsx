@@ -24,7 +24,7 @@ export default function Footer() {
           <p className="mt-4 sm:mt-0 sm:ml-4 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4 border-muted">
             &copy; {new Date().getFullYear()} Motivate Tales
           </p>
-          <span className="mt-2 sm:mt-0 sm:ml-4">Ver 0.9.15</span>
+          <span className="mt-2 sm:mt-0 sm:ml-4">Ver 0.9.16</span>
         </div>
       </div>
     </footer>
