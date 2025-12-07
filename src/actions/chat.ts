@@ -49,7 +49,7 @@ export async function getAiResponse(
   userProfile?: UserProfile,
 ): Promise<{ success: boolean; message: string; loveScore?: number }> {
   const { firestore } = initializeFirebase();
-  const conversationsCollection = collection(firestore, 'conversations_errors');
+  const conversationsLogCollection = collection(firestore, 'conversations_errors');
   
   let character: Character;
   let flowInput: any;
@@ -100,7 +100,8 @@ export async function getAiResponse(
 
   const logData: any = {
     flow: 'dynamicCharacterIntroduction',
-    request: {}, // To be populated later
+    request: {},
+    response: {},
     timestamp: serverTimestamp(),
   };
 
@@ -111,19 +112,21 @@ export async function getAiResponse(
         ...flowInput,
         renderedPrompt: response.prompt,
     };
+    logData.response = {
+        aiResponse: response.aiResponse,
+        loveScore: response.loveScore,
+        rawResponse: JSON.parse(JSON.stringify(response.rawResponse || {})),
+    };
     
     const aiMessage = response.aiResponse;
     const loveScore = response.loveScore;
-    const rawResponse = response.rawResponse;
 
     if (!aiMessage && aiMessage !== "") { 
-        const finishReason = rawResponse?.candidates?.[0]?.finishReason;
-        if (finishReason === 'MAX_TOKENS' || finishReason === 'LENGTH') {
-            throw new Error('AIの応答が長すぎるため、途中で中断されました。入力する文字数を減らして、もう一度試してください。');
-        }
         throw new Error('AIから空の応答が返されました。');
     }
     
+    // Log success to Firestore
+    await addDoc(conversationsLogCollection, logData);
     log('INFO', 'getAiResponse action successful.', { response: { success: true, message: aiMessage, loveScore }});
     return { success: true, message: aiMessage, loveScore };
 
@@ -146,17 +149,16 @@ export async function getAiResponse(
     logData.error = errorMessage;
     
     try {
-        await addDoc(conversationsCollection, logData);
+        await addDoc(conversationsLogCollection, logData);
     } catch (dbError) {
         console.error("Error logging failed AI response to Firestore:", dbError);
         const permissionError = new FirestorePermissionError({
-            path: conversationsCollection.path,
+            path: conversationsLogCollection.path,
             operation: 'create',
             requestResourceData: logData,
         }, dbError);
         errorEmitter.emit('permission-error', permissionError);
     }
-
 
     log('ERROR', 'getAiResponse action failed.', { error: errorMessage });
     return {

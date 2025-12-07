@@ -179,10 +179,9 @@ service cloud.firestore {
     
     match /characters/{characterId} {
       allow get, list: if isSignedIn();
-      // Allow any signed-in user to create characters for now.
-      // Admins can still update and delete.
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+      // Admins can create, update, and delete characters.
+      // This is handled by the server action using the Admin SDK.
+      allow create, update, delete: if false;
     }
 
     /**
