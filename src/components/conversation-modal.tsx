@@ -120,10 +120,11 @@ export default function ConversationModal({
       setErrorMessage('');
       try {
         const conversationCollectionRef = collection(firestore, 'users', user.uid, 'conversationHistory');
+        // Firestoreクエリから orderBy を削除
         const q = query(
           conversationCollectionRef,
           where('characterId', '==', characterId),
-          limit(20) // Fetch last 20 messages
+          limit(20)
         );
 
         const querySnapshot = await getDocs(q);
@@ -133,11 +134,12 @@ export default function ConversationModal({
           return {
             id: doc.id,
             ...data,
+            // サーバーのタイムスタンプがnullの場合も考慮してDateオブジェクトに変換
             timestamp: timestamp ? timestamp.toDate() : new Date(),
           } as Message;
         });
 
-        // Sort messages by timestamp on the client side
+        // クライアント側でタイムスタンプ順にソート
         fetchedMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         setHistory(fetchedMessages);
