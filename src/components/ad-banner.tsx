@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Card } from './ui/card';
 
 export default function AdBanner() {
   useEffect(() => {
@@ -21,7 +20,7 @@ export default function AdBanner() {
   }, []);
 
   return (
-    <Card className="my-6 flex justify-center items-center text-muted-foreground p-2 bg-card/80">
+    <div className="my-6 mx-auto max-w-md w-full p-2 bg-card/60 rounded-lg border border-border flex justify-center items-center">
       <ins
         className="adsbygoogle"
         style={{ display: 'block', width: '100%', textAlign: 'center' }}
@@ -31,10 +30,10 @@ export default function AdBanner() {
         data-full-width-responsive="true"
       >
          {/* Fallback content in case ad doesn't load */}
-        <div className="text-center">
+        <div className="text-center text-muted-foreground">
           <p className="text-xs">広告</p>
         </div>
       </ins>
-    </Card>
+    </div>
   );
 }
