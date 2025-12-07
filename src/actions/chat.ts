@@ -144,14 +144,19 @@ export async function getAiResponse(
     
     logData.request = flowInput;
     logData.error = errorMessage;
-    addDoc(conversationsCollection, logData).catch(async (dbError) => {
+    
+    try {
+        await addDoc(conversationsCollection, logData);
+    } catch (dbError) {
+        console.error("Error logging failed AI response to Firestore:", dbError);
         const permissionError = new FirestorePermissionError({
             path: conversationsCollection.path,
             operation: 'create',
             requestResourceData: logData,
         }, dbError);
         errorEmitter.emit('permission-error', permissionError);
-    });
+    }
+
 
     log('ERROR', 'getAiResponse action failed.', { error: errorMessage });
     return {

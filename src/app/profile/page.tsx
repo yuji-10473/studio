@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { LoaderCircle } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, '表示名は必須です。').max(50, '表示名は50文字以内で入力してください。'),
@@ -64,6 +66,13 @@ export default function ProfilePage() {
         description: 'プロフィールを更新しました。',
       });
     } catch (error) {
+      const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: data,
+      }, error);
+      errorEmitter.emit('permission-error', permissionError);
+      
       const message = error instanceof Error ? error.message : '不明なエラー';
       setErrorMessage(`プロフィールの更新に失敗しました: ${message}`);
     }

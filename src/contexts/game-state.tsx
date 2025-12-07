@@ -12,6 +12,8 @@ import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, Ti
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { toggleCharacterLock as toggleCharacterLockAction } from '@/actions/character';
 import { useMemoFirebase } from '@/firebase/provider';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const CHARM_THRESHOLD = 80;
 const CHARM_AWARD = 10;
@@ -91,7 +93,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                     enableTTS: false,
                     bgmVolume: 0.25,
                 };
-                setDoc(userDocRef, newUserProfile);
+                setDoc(userDocRef, newUserProfile).catch(error => {
+                    const permissionError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'create',
+                        requestResourceData: newUserProfile,
+                    }, error);
+                    errorEmitter.emit('permission-error', permissionError);
+                });
             }
         });
     }
@@ -123,10 +132,18 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             characters.forEach(char => {
                 if (char.id && !userStates.some(s => s.id === char.id)) {
                     const newStateRef = doc(firestore, `users/${user.uid}/characterStates`, char.id);
-                    batch.set(newStateRef, { affection: 50, charmAwarded: false });
+                    const newStateData = { affection: 50, charmAwarded: false };
+                    batch.set(newStateRef, newStateData);
                 }
             });
-            batch.commit().catch(e => console.error("Failed to create new character states", e));
+            batch.commit().catch(e => {
+                const permissionError = new FirestorePermissionError({
+                    path: `users/${user.uid}/characterStates`,
+                    operation: 'write', // Batch can contain multiple ops, 'write' is generic
+                    requestResourceData: { info: "Batch write for new character states" },
+                }, e);
+                errorEmitter.emit('permission-error', permissionError);
+            });
         }
 
         const newBgmVolume = userProfile?.bgmVolume ?? 0.25;
@@ -269,97 +286,111 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setErrorMessage('');
     const charId = state.activeConversation;
     const conversationHistoryRef = collection(firestore, 'users', user.uid, 'conversationHistory');
-
-    const userMessage: Message = { 
-        sender: 'user', 
-        text, 
-        timestamp: serverTimestamp(),
-        characterId: charId 
-    };
-
+    
     updateState(prev => ({ ...prev, isAiResponding: true, affectionEvent: null }));
 
-    const historyQuery = query(
-        conversationHistoryRef,
-        orderBy('timestamp', 'desc'), 
-        limit(20)
-    );
-    const historySnapshot = await getDocs(historyQuery);
-    
-    const plainHistory = historySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return { ...data, timestamp: (data.timestamp as Timestamp).toDate().toISOString() };
-    }).filter(msg => msg.characterId === charId).reverse() as Message[];
+    try {
+        const userMessage: Omit<Message, 'id'> = { 
+            sender: 'user', 
+            text, 
+            timestamp: serverTimestamp(),
+            characterId: charId 
+        };
+        await addDoc(conversationHistoryRef, userMessage);
 
-    await addDoc(conversationHistoryRef, userMessage);
-
-    const activeCharacter = state.characters.find(c => c.id === charId);
-    if (!activeCharacter) {
-        setErrorMessage("アクティブなキャラクターが見つかりません。");
-        updateState(prev => ({...prev, isAiResponding: false}));
-        return;
-    }
-
-    const result = await getAiResponse(activeCharacter, text, plainHistory.slice(-10), state.userProfile);
-    
-    updateState(prev => ({ ...prev, isAiResponding: false }));
-
-    if (result.success) {
-      const aiMessage: Message = { 
-          sender: charId, 
-          text: result.message, 
-          timestamp: serverTimestamp(),
-          characterId: charId
-      };
-      await addDoc(conversationHistoryRef, aiMessage);
-      
-      const currentCharacterState = state.characterStates[charId];
-      const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
-      const newAffection = Math.max(0, Math.min(100, (currentCharacterState?.affection || 50) + affectionChange));
-
-      if (affectionChange > 0) {
-        updateState(prev => ({
-          ...prev,
-          affectionEvent: { characterId: charId, change: affectionChange },
-        }));
-      }
-
-      let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !(currentCharacterState.charmAwarded ?? false);
-      
-      let newCharm = state.charm;
-      if (shouldAwardCharm) {
-        newCharm += CHARM_AWARD;
-        toast({
-          title: "魅力アップ！",
-          description: `${activeCharacter.name}との仲が深まりました。魅力が${CHARM_AWARD}ポイント上昇しました。`,
-        });
+        const historyQuery = query(
+            conversationHistoryRef,
+            where('characterId', '==', charId),
+            orderBy('timestamp', 'desc'), 
+            limit(10)
+        );
+        const historySnapshot = await getDocs(historyQuery);
         
-        const userDocRef = doc(firestore, 'users', user.uid);
-        await updateDoc(userDocRef, { charm: newCharm });
-      }
+        const plainHistory = historySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, timestamp: (data.timestamp as Timestamp)?.toDate().toISOString() || new Date().toISOString() };
+        }).reverse() as Message[];
 
-      const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
-      await setDoc(characterStateRef, { 
-          affection: newAffection,
-          charmAwarded: shouldAwardCharm ? true : (currentCharacterState.charmAwarded ?? false)
-      }, { merge: true });
+        const activeCharacter = state.characters.find(c => c.id === charId);
+        if (!activeCharacter) {
+            throw new Error("アクティブなキャラクターが見つかりません。");
+        }
 
-      speak(result.message);
-    } else {
-      setErrorMessage(result.message);
+        const result = await getAiResponse(activeCharacter, text, plainHistory, state.userProfile);
+        
+        updateState(prev => ({ ...prev, isAiResponding: false }));
+
+        if (result.success) {
+          const aiMessage: Omit<Message, 'id'> = { 
+              sender: charId, 
+              text: result.message, 
+              timestamp: serverTimestamp(),
+              characterId: charId
+          };
+          await addDoc(conversationHistoryRef, aiMessage);
+          
+          const currentCharacterState = state.characterStates[charId];
+          const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
+          const newAffection = Math.max(0, Math.min(100, (currentCharacterState?.affection || 50) + affectionChange));
+
+          if (affectionChange > 0) {
+            updateState(prev => ({
+              ...prev,
+              affectionEvent: { characterId: charId, change: affectionChange },
+            }));
+          }
+
+          let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !(currentCharacterState.charmAwarded ?? false);
+          
+          if (shouldAwardCharm) {
+            const newCharm = (state.userProfile.charm || 0) + CHARM_AWARD;
+            toast({
+              title: "魅力アップ！",
+              description: `${activeCharacter.name}との仲が深まりました。魅力が${CHARM_AWARD}ポイント上昇しました。`,
+            });
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await updateDoc(userDocRef, { charm: newCharm });
+          }
+
+          const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
+          const newCharacterState = { 
+              affection: newAffection,
+              charmAwarded: shouldAwardCharm ? true : (currentCharacterState.charmAwarded ?? false)
+          };
+          await setDoc(characterStateRef, newCharacterState, { merge: true });
+
+          speak(result.message);
+        } else {
+          setErrorMessage(result.message);
+        }
+    } catch(error) {
+        console.error("Error during sendMessage:", error);
+        const permissionError = new FirestorePermissionError({
+            path: `users/${user.uid}/conversationHistory`,
+            operation: 'write',
+            requestResourceData: { messageText: text },
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
+        setErrorMessage(`メッセージの送信中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+        updateState(prev => ({ ...prev, isAiResponding: false }));
     }
   }, [state, updateState, toast, setErrorMessage, firestore, user, speak]);
 
-  const updateCharacterPersona = useCallback((characterId: CharacterId, description: string) => {
+  const updateCharacterPersona = useCallback(async (characterId: CharacterId, description: string) => {
     if (!firestore) return;
     const characterDocRef = doc(firestore, 'characters', characterId);
-    updateDoc(characterDocRef, { description })
-      .then(() => {
-        toast({ title: "ペルソナ更新", description: `${characterId}のペルソナを更新しました。`});
-      })
-      .catch((error) => {
-        setErrorMessage(`ペルソナの更新に失敗しました: ${error.message}`);
-      });
+    try {
+      await updateDoc(characterDocRef, { description });
+      toast({ title: "ペルソナ更新", description: `${characterId}のペルソナを更新しました。`});
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: characterDocRef.path,
+            operation: 'update',
+            requestResourceData: { description },
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
+        setErrorMessage(`ペルソナの更新に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }, [firestore, toast, setErrorMessage]);
 
   const stayAtInn = useCallback(async () => {
@@ -381,6 +412,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         await batch.commit();
         toast({ title: "新しい一日", description: "次の日になり、キャラクターの好感度がリセットされました。"});
     } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'write',
+            requestResourceData: { info: "Batch write for stayAtInn" },
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
         setErrorMessage(`処理中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
 
@@ -395,8 +432,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       if (!enabled) {
         cancelSpeech();
       }
-    } catch(e) {
-      console.error("Failed to update TTS setting:", e);
+    } catch(error) {
+      const permissionError = new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'update',
+        requestResourceData: { enableTTS: enabled },
+      }, error);
+      errorEmitter.emit('permission-error', permissionError);
       setErrorMessage("音声設定の保存に失敗しました。");
       // Revert optimistic update
       updateState(prev => ({...prev, enableTTS: !enabled}));
@@ -416,8 +458,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
         await updateDoc(userDocRef, { bgmVolume: finalVolume });
-    } catch (e) {
-        console.error("Failed to update BGM volume setting:", e);
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: { bgmVolume: finalVolume },
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
         setErrorMessage("音量設定の保存に失敗しました。");
     }
   }, [user, firestore, updateState, setErrorMessage]);
@@ -452,6 +499,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         description: `${character.name}との会話が可能になりました。`,
       });
     } catch (error) {
+      const permissionError = new FirestorePermissionError({
+            path: userDocRef.path, // or characterDocRef.path
+            operation: 'write',
+            requestResourceData: { info: "Batch write for unlockCharacter" },
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
       setErrorMessage(`キャラクターの解放に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
     }
 
@@ -492,7 +545,3 @@ export const useGameState = (): GameContextType => {
   }
   return context;
 };
-
-    
-
-    

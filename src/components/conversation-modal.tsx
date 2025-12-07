@@ -20,39 +20,39 @@ import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { query, where, orderBy, limit, collection } from 'firebase/firestore';
 
-type ConversationModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  character: Character;
-  characterState: CharacterState;
-  characterId: CharacterId;
-};
 
 function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollHeightBeforeLoad = useRef<number>(0);
   const { setErrorMessage } = useGameState();
   const { user } = useUser();
-  
-  const conversationPath = useMemo(() => user ? `users/${user.uid}/conversationHistory` : null, [user]);
+  const firestore = useFirestore();
 
-  const collectionOptions = useMemo(() => ({
-    sort: 'timestamp' as const, 
-    sortDirection: 'desc' as const,
-    limit: 10,
-    filter: ['characterId', '==', characterId] as const
-  }), [characterId]);
+  const conversationCollectionRef = useMemoFirebase(() => 
+    (user && firestore) ? collection(firestore, 'users', user.uid, 'conversationHistory') : null,
+    [user, firestore]
+  );
+  
+  const conversationQuery = useMemoFirebase(() => 
+    conversationCollectionRef ? query(
+      conversationCollectionRef,
+      where('characterId', '==', characterId),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    ) : null,
+    [conversationCollectionRef, characterId]
+  );
   
   const { 
     data: messages, 
-    loading: initialLoading, 
+    isLoading: initialLoading, 
     error,
-    loadMore,
-    hasMore,
-    loadingMore 
-  } = useCollection<Message>(conversationPath, collectionOptions);
+    // Note: useCollection doesn't natively support pagination, so loadMore/hasMore are stubs.
+    // A more advanced hook would be needed for infinite scroll.
+  } = useCollection<Message>(conversationQuery);
 
   useEffect(() => {
     if (error) {
@@ -61,29 +61,13 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   }, [error, setErrorMessage]);
 
   useEffect(() => {
+    // Basic scroll to bottom for new messages
     const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    if (loadingMore) {
-        // --- For "Load More" ---
-        // Before loading more, save the current scroll height and position
-        scrollHeightBeforeLoad.current = viewport.scrollHeight;
-    } else if (scrollHeightBeforeLoad.current > 0) {
-        // After "Load More" has finished, restore scroll position
-        viewport.scrollTop += viewport.scrollHeight - scrollHeightBeforeLoad.current;
-        scrollHeightBeforeLoad.current = 0; // Reset
-    } else {
-        // --- For new messages ---
-        // Otherwise, scroll to the bottom for new messages
+    if (viewport) {
         viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
     }
-  }, [messages, loadingMore]);
+  }, [messages]);
   
-  const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
-      loadMore();
-    }
-  };
 
   if (initialLoading && !messages) {
     return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-8 h-8 animate-spin" /></div>
@@ -95,14 +79,7 @@ function ConversationHistory({ characterId, character }: { characterId: Characte
   return (
     <ScrollArea className="flex-grow" viewportRef={viewportRef}>
         <div className="p-4 space-y-4">
-        {hasMore && (
-             <div className="text-center">
-                <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
-                    {loadingMore ? <LoaderCircle className="w-4 h-4 animate-spin mr-2" /> : <MessageSquarePlus className="w-4 h-4 mr-2" />}
-                    もっと見る
-                </Button>
-            </div>
-        )}
+        {/* Placeholder for future "Load More" functionality */}
         {displayedMessages.map((msg, index) => (
           <div
             key={msg.id || index}
