@@ -7,22 +7,19 @@ import type { Character } from '@/lib/types';
 import { generateNewCharacter } from '@/ai/flows/generate-new-character';
 import { firebaseConfig } from '@/firebase/config';
 
-// Initialize Firebase Admin SDK
-function initializeAdminApp() {
-  if (getApps().length > 0) {
-    return getApp();
-  }
-  // This helps ensure that the admin SDK is initialized with the correct project context,
-  // which can be crucial for server-to-server API calls like those to Google AI services.
-  return initializeApp({
+// Initialize Firebase Admin SDK at the module level
+if (getApps().length === 0) {
+  initializeApp({
     projectId: firebaseConfig.projectId,
   });
 }
 
+const adminApp = getApp();
+const firestore = getFirestore(adminApp);
+
+
 export async function createCharacter(characterData: Omit<Character, 'id'>): Promise<{ success: boolean; message: string, id?: string }> {
   try {
-    initializeAdminApp();
-    const firestore = getFirestore();
     const charactersCollectionRef = firestore.collection('characters');
     
     console.log(`[ADMIN] Attempting to write to Firestore collection: '${charactersCollectionRef.path}'`);
@@ -74,8 +71,6 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
 
 export async function toggleCharacterLock(characterId: string, isLocked: boolean): Promise<{ success: boolean; message: string }> {
     try {
-        initializeAdminApp();
-        const firestore = getFirestore();
         const characterDocRef = firestore.collection('characters').doc(characterId);
         await characterDocRef.update({
             isLocked: !isLocked
