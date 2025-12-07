@@ -70,6 +70,7 @@ const generateNewCharacterFlow = ai.defineFlow(
       prompt: prompt,
       config: {
         temperature: 0.9,
+        maxOutputTokens: 2000,
       },
     });
 
