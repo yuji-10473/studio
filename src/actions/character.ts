@@ -57,6 +57,7 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     const newCharacter: Omit<Character, 'id'> = {
       ...generatedData,
       imagePath: '/images/icons/icon5.png',
+      imagePathHighAffection: '/images/icons/icon5.png',
       isLocked: true,
       unlockCost: 20,
     };
@@ -76,8 +77,8 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
   } catch (error) {
     console.error('Error generating and creating character:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logPayload.error = errorMessage;
-    await debugLogRef.add(logPayload);
+    // The Firestore write in the catch block is causing a secondary error.
+    // The primary error is already logged to the console, which is sufficient.
     return { success: false, message: `AIキャラクターの作成中にエラーが発生しました:\n${errorMessage}` };
   }
 }
