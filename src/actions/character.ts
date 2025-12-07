@@ -25,6 +25,7 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
   } catch (error) {
     console.error('Error creating character:', error);
     
+    // Generate and emit a detailed permission error for the debug overlay.
     const permissionError = new FirestorePermissionError({
         path: charactersCollectionRef.path,
         operation: 'create',
@@ -32,6 +33,7 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
     }, error);
     errorEmitter.emit('permission-error', permissionError);
 
+    // Return a more informative message to the user UI.
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { 
         success: false, 
@@ -59,6 +61,7 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     if (result.success) {
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };
     } else {
+      // Pass the detailed error message from createCharacter to the UI
       throw new Error(result.message);
     }
   } catch (error) {
