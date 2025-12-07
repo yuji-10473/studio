@@ -29,7 +29,7 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
         path: charactersCollectionRef.path,
         operation: 'create',
         requestResourceData: finalData,
-    }, error);
+    }, error); // Pass the original error as the cause
     errorEmitter.emit('permission-error', permissionError);
 
     // Return a user-friendly message for the UI
