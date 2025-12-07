@@ -12,6 +12,9 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
   const { firestore } = initializeFirebase();
   const charactersCollectionRef = collection(firestore, 'characters');
 
+  // Log the access attempt
+  console.log(`[ACCESS_LOG] Attempting to write to Firestore collection: '${charactersCollectionRef.path}'`);
+
   const finalData: Omit<Character, 'id'> = {
     ...characterData,
     unlockedBy: [], // Initialize unlockedBy as an empty array
@@ -32,11 +35,11 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
     }, error); // Pass the original error as the cause
     errorEmitter.emit('permission-error', permissionError);
 
-    // Return a user-friendly message for the UI
+    // Return a user-friendly message for the UI that includes the path
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { 
         success: false, 
-        message: `キャラクターの作成中にエラーが発生しました。詳細は開発者コンソールまたはエラーオーバーレイを確認してください。\nError: ${errorMessage}` 
+        message: `キャラクターの作成中にエラーが発生しました。パス: '${charactersCollectionRef.path}'.\n詳細は開発者コンソールまたはエラーオーバーレイを確認してください。\nError: ${errorMessage}` 
     };
   }
 }
