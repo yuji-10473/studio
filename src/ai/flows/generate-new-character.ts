@@ -79,26 +79,23 @@ const generateNewCharacterFlow = ai.defineFlow(
     const responseText = response.text.trim();
     
     try {
-      // The prompt now strictly requests a raw JSON object.
-      // We first try to parse it directly.
-      const parsed = JSON.parse(responseText);
+      // AIの応答からJSONオブジェクトを抽出する正規表現
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('AIの応答に有効なJSONオブジェクトが見つかりませんでした。');
+      }
+      
+      const jsonString = jsonMatch[0];
+      const parsed = JSON.parse(jsonString);
       return GenerateNewCharacterOutputSchema.parse(parsed);
-    } catch(e) {
-        console.error("Failed to parse AI response as JSON.", e, "Raw response:", responseText);
-        // As a fallback, try to extract from a code block if the model ignored the instruction.
-        try {
-            const jsonStart = responseText.indexOf('{');
-            const jsonEnd = responseText.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd > jsonStart) {
-                const jsonString = responseText.substring(jsonStart, jsonEnd + 1);
-                const parsedFallback = JSON.parse(jsonString);
-                return GenerateNewCharacterOutputSchema.parse(parsedFallback);
-            }
-        } catch (fallbackError) {
-             console.error("Fallback JSON parsing also failed.", fallbackError);
-        }
-        // If all parsing fails, throw the original error.
-        throw new Error('AIからの応答を解析できませんでした。');
+
+    } catch (e: any) {
+        console.error("AI応答の解析に失敗しました。", {
+            error: e.message,
+            rawResponse: responseText
+        });
+        // エラーを再スローして、呼び出し元で処理できるようにする
+        throw new Error(`AIからの応答を解析できませんでした: ${e.message}`);
     }
   }
 );
