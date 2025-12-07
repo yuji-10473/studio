@@ -102,7 +102,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const handleGenerateCharacter = async () => {
     setIsGenerating(true);
     setErrorMessage('');
-    const result = await generateAndCreateCharacter("ファンタジー世界の住人");
+    const result = await generateAndCreateCharacter("ゲーム開発会社の様々な労務問題を抱える従業員");
     if (result.success) {
       toast({
         title: "成功",
