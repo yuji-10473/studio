@@ -42,7 +42,7 @@ const promptTemplate = `以下のテーマに沿って、ロールプレイン�
 - 日本語のキャラクターを作成してください。
 - 名前はユニークで覚えやすいものにしてください。
 - 紹介文はキャラクターの特徴を一行で簡潔に表現してください。
-- ペルソナはAIがそのキャラクターになりきるための詳細な設定です。性格、口調、一人称、背景などを具体的に記述してください。
+- ペルソナ設定（description）は、AIがそのキャラクターになりきるための重要な設定です。性格、口調、一人称、背景、ユーザーへの接し方などを、**単一の長い文字列として、一つの文章にまとめて**具体的に記述してください。オブジェクトや箇条書きにはしないでください。
 
 # 重要: 出力形式
 あなたの回答は、以下のJSONスキーマに従う有効なJSONオブジェクト**のみ**を生成してください。
@@ -51,7 +51,7 @@ const promptTemplate = `以下のテーマに沿って、ロールプレイン�
 {
   "name": "ここに生成されたキャラクターの名前を記述します",
   "introduction": "ここに生成されたキャラクターの短い紹介文を記述します",
-  "description": "ここに生成されたキャラクターになりきるための詳細なAIペルソナ設定を記述します"
+  "description": "ここに、ペルソナ設定のすべてを単一の文字列としてまとめて記述します。"
 }
 \`\`\`
 `;
@@ -94,8 +94,14 @@ const generateNewCharacterFlow = ai.defineFlow(
             error: e.message,
             rawResponse: responseText
         });
+        
+        let errorMessage = e.message;
+        if (e.issues) {
+            errorMessage = JSON.stringify(e.issues, null, 2);
+        }
+        
         // エラーを再スローして、呼び出し元で処理できるようにする
-        throw new Error(`AIからの応答を解析できませんでした: ${e.message}`);
+        throw new Error(`AIからの応答を解析できませんでした: ${errorMessage}`);
     }
   }
 );
