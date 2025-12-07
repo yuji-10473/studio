@@ -123,7 +123,6 @@ export default function ConversationModal({
         const q = query(
           conversationCollectionRef,
           where('characterId', '==', characterId),
-          orderBy('timestamp', 'asc'),
           limit(20) // Fetch last 20 messages
         );
 
@@ -137,6 +136,9 @@ export default function ConversationModal({
             timestamp: timestamp ? timestamp.toDate() : new Date(),
           } as Message;
         });
+
+        // Sort messages by timestamp on the client side
+        fetchedMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         setHistory(fetchedMessages);
       } catch (error) {
