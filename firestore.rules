@@ -110,67 +110,67 @@ service cloud.firestore {
       allow create: if isCreatingValidUserDocument(userId);
       allow update: if isUpdatingValidUserDocument(userId);
       allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description A user's private daily goals.
-       * @path /users/{userId}/dailyGoals/{dailyGoalId}
-       * @allow (create) The user creating a new goal for themselves.
-       * @deny (list) Another user trying to list this user's goals.
-       * @principle Enforces strict document ownership within a user's data tree.
-       */
-      match /dailyGoals/{dailyGoalId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isCreatingValidSubcollectionDocument(userId);
-        allow update: if isUpdatingValidSubcollectionDocument(userId);
-        allow delete: if isExistingOwner(userId);
-      }
+    /**
+     * @description A user's private daily goals.
+     * @path /users/{userId}/dailyGoals/{dailyGoalId}
+     * @allow (create) The user creating a new goal for themselves.
+     * @deny (list) Another user trying to list this user's goals.
+     * @principle Enforces strict document ownership within a user's data tree.
+     */
+    match /users/{userId}/dailyGoals/{dailyGoalId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isCreatingValidSubcollectionDocument(userId);
+      allow update: if isUpdatingValidSubcollectionDocument(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description Records of rewards earned by a user.
-       * @path /users/{userId}/userRewards/{userRewardId}
-       * @allow (get) The user reading one of their earned rewards.
-       * @deny (update) Another user trying to modify this user's earned reward.
-       * @principle Enforces strict document ownership within a user's data tree.
-       */
-      match /userRewards/{userRewardId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isCreatingValidSubcollectionDocument(userId);
-        allow update: if isUpdatingValidSubcollectionDocument(userId);
-        allow delete: if isExistingOwner(userId);
-      }
+    /**
+     * @description Records of rewards earned by a user.
+     * @path /users/{userId}/userRewards/{userRewardId}
+     * @allow (get) The user reading one of their earned rewards.
+     * @deny (update) Another user trying to modify this user's earned reward.
+     * @principle Enforces strict document ownership within a user's data tree.
+     */
+    match /users/{userId}/userRewards/{userRewardId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isCreatingValidSubcollectionDocument(userId);
+      allow update: if isUpdatingValidSubcollectionDocument(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description A user's accumulated points.
-       * @path /users/{userId}/userPoints/{userPointsId}
-       * @allow (list) The user listing their own points documents.
-       * @deny (create) Another user trying to create a points document for this user.
-       * @principle Enforces strict document ownership within a user's data tree.
-       */
-      match /userPoints/{userPointsId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isCreatingValidSubcollectionDocument(userId);
-        allow update: if isUpdatingValidSubcollectionDocument(userId);
-        allow delete: if isExistingOwner(userId);
-      }
-      
-      /**
-       * @description A user's conversation history with characters.
-       * @path /users/{userId}/conversationHistory/{messageId}
-       */
-      match /conversationHistory/{messageId} {
-          allow read, write: if isOwner(userId);
-      }
-      
-      /**
-       * @description A user's state with characters (affection, etc.).
-       * @path /users/{userId}/characterStates/{characterId}
-       */
-      match /characterStates/{characterId} {
-          allow get, list, create, update, delete: if isOwner(userId);
-      }
+    /**
+     * @description A user's accumulated points.
+     * @path /users/{userId}/userPoints/{userPointsId}
+     * @allow (list) The user listing their own points documents.
+     * @deny (create) Another user trying to create a points document for this user.
+     * @principle Enforces strict document ownership within a user's data tree.
+     */
+    match /users/{userId}/userPoints/{userPointsId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isCreatingValidSubcollectionDocument(userId);
+      allow update: if isUpdatingValidSubcollectionDocument(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+    
+    /**
+     * @description A user's conversation history with characters.
+     * @path /users/{userId}/conversationHistory/{messageId}
+     */
+    match /users/{userId}/conversationHistory/{messageId} {
+        allow read, write: if isOwner(userId);
+    }
+    
+    /**
+     * @description A user's state with characters (affection, etc.).
+     * @path /users/{userId}/characterStates/{characterId}
+     */
+    match /users/{userId}/characterStates/{characterId} {
+        allow get, list, create, update, delete: if isOwner(userId);
     }
     
     match /admins/{userId} {
