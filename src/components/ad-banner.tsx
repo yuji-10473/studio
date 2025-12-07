@@ -24,16 +24,17 @@ export default function AdBanner() {
     <Card className="my-6 flex justify-center items-center text-muted-foreground p-2 min-h-[60px] bg-card/80">
       <ins
         className="adsbygoogle"
-        style={{ display: 'block', width: '100%' }}
+        style={{ display: 'block', width: '100%', textAlign: 'center' }}
         data-ad-client="ca-pub-7148894079314433"
         data-ad-slot="YOUR_AD_SLOT_ID" // TODO: Replace with your actual ad slot ID
         data-ad-format="auto"
         data-full-width-responsive="true"
-      ></ins>
-       {/* Fallback content */}
-      <div className="text-center">
-        <p className="text-xs">広告</p>
-      </div>
+      >
+         {/* Fallback content in case ad doesn't load */}
+        <div className="text-center">
+          <p className="text-xs">広告</p>
+        </div>
+      </ins>
     </Card>
   );
 }
