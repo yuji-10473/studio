@@ -187,7 +187,7 @@ export async function runGuideChatE2eTest(): Promise<{ success: boolean; message
 
         const testConversationHistory: { role: 'user' | 'model'; content: string }[] = [
             { role: 'user', content: 'こんにちは！' },
-            { role: 'model', content: 'こんにちは！ 私は案内役の零無皇です。ゲームのことで分からないことがあれば、何でも聞いてくださいね。' },
+            { role: 'model', content: 'こんにちは！ 私は案内役の働くゾウさんです。ゲームのことで分からないことがあれば、何でも聞いてくださいね。' },
         ];
 
         log('INFO', 'Calling getGuideResponse with test data.', { request: { testUserMessage, testConversationHistory }});
