@@ -36,6 +36,11 @@
     { "id": "icon7", "path": "/images/icons/icon7b.png" },
     { "id": "icon8", "path": "/images/icons/icon8b.png" },
     { "id": "icon9", "path": "/images/icons/icon9b.png" },
-    { "id": "icon10", "path": "/images/icons/icon10b.png" }
+    { "id": "icon10", "path": "/images/icons/icon10b.png" },
+    { "id": "icon11", "path": "/images/icons/icon11b.png" },
+    { "id": "icon12", "path": "/images/icons/icon12b.png" },
+    { "id": "icon13", "path": "/images/icons/icon13b.png" },
+    { "id": "icon14", "path": "/images/icons/icon14b.png" },
+    { "id": "icon15", "path": "/images/icons/icon15b.png" }
   ]
 }
