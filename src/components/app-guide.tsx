@@ -62,8 +62,7 @@ export default function GuideCharacter({ onTalk }: GuideCharacterProps) {
         </CardHeader>
         <CardContent className="p-0 mt-4">
             <p className="text-sm text-muted-foreground">
-                ここは2025年の東京、今日も雑踏を行き交う転生者と君が出会い会話することで、好感度を上げて君の魅力ポイントを貯めよう。君の魅力ポイントが貯まったら、転生者の暗黒面を開放することが出来るよ。
-わからないことがあったら気軽に話しかけてね！
+                ここは2026年の東京にあるゲーム開発会社、今日も様々な労務問題を抱える。従業員たちの悩みを解決して、生産性を向上させよう。わからないことがあったら気軽に話しかけてね。
             </p>
         </CardContent>
       </div>
