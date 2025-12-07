@@ -34,6 +34,7 @@ export type Character = {
   introduction: string;
   description: string;
   imagePath: string;
+  imagePathHighAffection?: string; // Path for high affection image
   isLocked?: boolean;
   unlockCost?: number;
   unlockedBy?: string[]; // Array of user UIDs who have unlocked this character

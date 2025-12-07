@@ -25,12 +25,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useGameState } from '@/contexts/game-state';
 import { SelectableIcons } from '@/lib/placeholder-images';
 import { Switch } from './ui/switch';
+import { Separator } from './ui/separator';
 
 const characterSchema = z.object({
   name: z.string().min(1, { message: '名前は必須です。' }).max(20, { message: '名前は20文字以内です。'}),
   introduction: z.string().min(1, { message: '紹介文は必須です。' }).max(100, { message: '紹介文は100文字以内です。'}),
   description: z.string().min(1, { message: 'ペルソナは必須です。' }).max(500, { message: 'ペルソナは500文字以内です。'}),
   imagePath: z.string({ required_error: 'アイコンを選択してください。' }),
+  imagePathHighAffection: z.string().optional(),
   isLocked: z.boolean().default(false),
   unlockCost: z.coerce.number().int().min(0, { message: '0以上の数値を入力してください。' }).optional(),
 });
@@ -54,6 +56,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
       introduction: '',
       description: '',
       imagePath: SelectableIcons.length > 0 ? SelectableIcons[0].path : undefined,
+      imagePathHighAffection: SelectableIcons.length > 0 ? SelectableIcons[0].path : undefined,
       isLocked: false,
       unlockCost: 0,
     },
@@ -105,7 +108,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
               name="imagePath"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>アイコンを選択</FormLabel>
+                  <FormLabel>アイコンを選択 (通常時)</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -137,6 +140,45 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="imagePathHighAffection"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>アイコンを選択 (好感度高)</FormLabel>
+                   <FormDescription>好感度が80以上になるとこちらのアイコンに切り替わります。</FormDescription>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="grid grid-cols-5 gap-4"
+                    >
+                      {SelectableIcons.map((icon) => (
+                        <FormItem key={`high-${icon.id}`} className="flex items-center justify-center">
+                          <FormControl>
+                            <RadioGroupItem value={icon.path} id={`high-${icon.id}`} className="sr-only" />
+                          </FormControl>
+                          <FormLabel
+                            htmlFor={`high-${icon.id}`}
+                            className="cursor-pointer rounded-lg border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                          >
+                             <Image
+                                src={icon.path}
+                                alt={`High Affection Icon ${icon.id}`}
+                                width={80}
+                                height={80}
+                                className="rounded-md"
+                              />
+                          </FormLabel>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Separator />
             <FormField
               control={form.control}
               name="name"

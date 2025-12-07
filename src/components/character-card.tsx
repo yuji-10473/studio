@@ -48,14 +48,16 @@ export default function CharacterCard({ character, characterState, onTalk }: Cha
     setIsTogglingLock(false);
   };
 
+  const hasHighAffectionImage = character.imagePathHighAffection && characterState.affection >= 80;
+  const displayImagePath = hasHighAffectionImage ? character.imagePathHighAffection : character.imagePath;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="flex-row gap-4 items-start p-4">
         <div className="relative w-24 h-24 flex-shrink-0">
-          {character.imagePath && (
+          {displayImagePath && (
             <Image
-              src={character.imagePath}
+              src={displayImagePath}
               alt={character.name}
               width={96}
               height={96}
