@@ -13,14 +13,13 @@ export default function AdBanner() {
       }
     };
 
-    // A small timeout can help ensure the container has dimensions before pushing the ad.
     const timer = setTimeout(pushAd, 100);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="my-6 mx-auto max-w-md w-full p-2 bg-card/60 rounded-lg border border-border flex justify-center items-center">
+    <div className="my-4 w-full py-1 bg-card/60 rounded-lg border border-border flex justify-center items-center">
       <ins
         className="adsbygoogle"
         style={{ display: 'block', width: '100%', textAlign: 'center' }}
