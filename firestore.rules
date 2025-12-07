@@ -28,8 +28,6 @@
  *   collections are publicly readable by any signed-in user but cannot be
  *   modified by clients. This assumes they are populated via a trusted server
  *   process or the Firebase console.
- * - Self-Service Profile: Users are permitted to create their own user profile
- *   document upon signup, but cannot modify critical identifiers afterward.
  *
  * Denormalization for Authorization:
  * Each user-specific document (e.g., DailyGoal) contains a denormalized `userId`
@@ -178,7 +176,7 @@ service cloud.firestore {
     }
     
     match /characters/{characterId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       // Admins can create, update, and delete characters.
       // This is handled by the server action using the Admin SDK.
       allow create, update, delete: if false;
