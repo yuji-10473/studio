@@ -143,7 +143,7 @@ export default function Login() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Townfolk Talesへようこそ</CardTitle>
+        <CardTitle className="text-2xl">Motivate Talesへようこそ</CardTitle>
         <CardDescription>
           アカウントにログインまたは新規登録して、
           <br />

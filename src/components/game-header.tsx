@@ -254,7 +254,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
       <div className="container mx-auto flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
            <h1 className="text-xl md:text-2xl font-headline font-bold text-foreground">
-            Townfolk Tales
+            Motivate Tales
           </h1>
         </div>
         <div className="flex items-center gap-4 md:gap-6">

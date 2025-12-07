@@ -7,7 +7,7 @@ import Footer from '@/components/footer';
 import { GameStateProvider } from '@/contexts/game-state';
 
 export const metadata: Metadata = {
-  title: 'Townfolk Tales',
+  title: 'Motivate Tales',
   description: 'An interactive RPG where you converse with AI characters.',
 };
 

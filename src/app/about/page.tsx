@@ -8,7 +8,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">このサイト「Townfolk Tales」について</CardTitle>
+          <CardTitle className="text-2xl font-headline">このサイト「Motivate Tales」について</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>

@@ -10,7 +10,7 @@ export default function TermsOfServicePage() {
           <CardTitle className="text-2xl font-headline">利用規約</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 text-muted-foreground">
-          <p>この利用規約（以下，「本規約」といいます。）は、Townfolk Tales 運営事務局（以下，「当方」といいます。）がこのウェブサイト上で提供するサービス（以下，「本サービス」といいます。）の利用条件を定めるものです。ユーザーの皆さま（以下，「ユーザー」といいます。）には，本規約に従って，本サービスをご利用いただきます。</p>
+          <p>この利用規約（以下，「本規約」といいます。）は、Motivate Tales 運営事務局（以下，「当方」といいます。）がこのウェブサイト上で提供するサービス（以下，「本サービス」といいます。）の利用条件を定めるものです。ユーザーの皆さま（以下，「ユーザー」といいます。）には，本規約に従って，本サービスをご利用いただきます。</p>
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">第1条（適用）</h2>

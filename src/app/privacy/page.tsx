@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
           <CardTitle className="text-2xl font-headline">プライバシーポリシー</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 text-muted-foreground">
-          <p>Townfolk Tales 運営事務局（以下「当方」といいます。）は、本ウェブサイト上で提供するサービス（以下「本サービス」といいます。）における、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます。）を定めます。</p>
+          <p>Motivate Tales 運営事務局（以下「当方」といいます。）は、本ウェブサイト上で提供するサービス（以下「本サービス」といいます。）における、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます。）を定めます。</p>
           
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">第1条（個人情報）</h2>

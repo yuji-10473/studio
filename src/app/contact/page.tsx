@@ -14,7 +14,7 @@ export default function ContactPage() {
           <div>
             <h2 className="text-lg font-semibold mb-2">運営者</h2>
             <p className="text-muted-foreground">
-              Townfolk Tales 運営事務局
+              Motivate Tales 運営事務局
             </p>
           </div>
           <div>

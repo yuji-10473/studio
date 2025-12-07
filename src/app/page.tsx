@@ -12,7 +12,7 @@ import Login from '@/components/login';
 import GuideCharacter from '@/components/app-guide';
 import GuideConversationModal from '@/components/guide-conversation-modal';
 
-function TownfolkTalesApp() {
+function MotivateTalesApp() {
   const { 
     user,
     activeConversation, 
@@ -76,6 +76,6 @@ function TownfolkTalesApp() {
 
 export default function Home() {
   return (
-      <TownfolkTalesApp />
+      <MotivateTalesApp />
   );
 }
