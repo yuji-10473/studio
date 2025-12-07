@@ -7,7 +7,7 @@ export default function AdBanner() {
         href="https://docs.google.com/forms/d/e/1FAIpQLSfWam1d54AoHKXY8PsPKZJmi6zhl9D9OXOG6objyPFI46Arxg/viewform?usp=header"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm font-medium text-primary hover:underline"
+        className="text-lg font-bold text-foreground hover:underline"
       >
         Slack参加申請
       </a>
