@@ -12,30 +12,26 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
   const { firestore } = initializeFirebase();
   const charactersCollectionRef = collection(firestore, 'characters');
 
-  // Log the access attempt
   console.log(`[ACCESS_LOG] Attempting to write to Firestore collection: '${charactersCollectionRef.path}'`);
 
   const finalData: Omit<Character, 'id'> = {
     ...characterData,
-    unlockedBy: [], // Initialize unlockedBy as an empty array
+    unlockedBy: [],
   };
   
   try {
-    // We are awaiting the result here to properly catch the error.
     const docRef = await addDoc(charactersCollectionRef, finalData);
     return { success: true, message: 'キャラクターを作成しました。', id: docRef.id };
   } catch (error) {
     console.error('Error creating character:', error);
     
-    // Create and emit the detailed permission error for the dev overlay
     const permissionError = new FirestorePermissionError({
         path: charactersCollectionRef.path,
         operation: 'create',
         requestResourceData: finalData,
-    }, error); // Pass the original error as the cause
+    }, error);
     errorEmitter.emit('permission-error', permissionError);
 
-    // Return a user-friendly message for the UI that includes the path
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { 
         success: false, 
@@ -46,7 +42,6 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
 
 export async function generateAndCreateCharacter(theme: string): Promise<{ success: boolean; message: string }> {
   try {
-    // 1. Generate character data using the AI flow
     const generatedData = await generateNewCharacter({ theme });
     if (!generatedData.name || !generatedData.introduction || !generatedData.description) {
       throw new Error('AIがキャラクター情報を正しく生成できませんでした。');
@@ -54,18 +49,16 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
 
     const newCharacter: Omit<Character, 'id'> = {
       ...generatedData,
-      imagePath: '/images/icons/icon5.png', // Assign a default icon for AI generated characters
+      imagePath: '/images/icons/icon5.png',
       isLocked: true,
       unlockCost: 20,
     };
 
-    // 2. Create the character in Firestore using the existing action
     const result = await createCharacter(newCharacter);
     
     if (result.success) {
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };
     } else {
-      // Pass the specific error message from createCharacter
       throw new Error(result.message);
     }
   } catch (error) {
@@ -75,10 +68,6 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
   }
 }
 
-/**
- * DEBUG: Toggles the isLocked status of a character.
- * This is an admin-only action.
- */
 export async function toggleCharacterLock(characterId: string, isLocked: boolean): Promise<{ success: boolean; message: string }> {
     try {
         const { firestore } = initializeFirebase();
