@@ -2,7 +2,7 @@
 'use server';
 
 import { getApp, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import type { Character } from '@/lib/types';
 import { generateNewCharacter } from '@/ai/flows/generate-new-character';
 import { firebaseConfig } from '@/firebase/config';
@@ -47,7 +47,7 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
   const debugLogRef = firestore.collection('debug_character_generation');
   const logPayload: any = {
       theme: theme,
-      timestamp: serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
   };
 
   try {
