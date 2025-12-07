@@ -44,7 +44,9 @@ const promptTemplate = `以下のテーマに沿って、ロールプレイン�
 - 紹介文はキャラクターの特徴を一行で簡潔に表現してください。
 - ペルソナはAIがそのキャラクターになりきるための詳細な設定です。性格、口調、一人称、背景などを具体的に記述してください。
 
-あなたの回答は、以下のJSONスキーマに従う有効なJSONオブジェクトのみを生成してください。他の説明、前置き、後書きは絶対に含めないでください。
+# 重要: 出力形式
+あなたの回答は、以下のJSONスキーマに従う有効なJSONオブジェクト**のみ**を生成してください。
+前後に\`\`\`jsonやその他のテキスト、説明、前置き、後書きは**絶対に**含めないでください。JSONオブジェクトそのものを直接出力してください。
 \`\`\`json
 {
   "name": "ここに生成されたキャラクターの名前を記述します",
@@ -77,18 +79,25 @@ const generateNewCharacterFlow = ai.defineFlow(
     const responseText = response.text.trim();
     
     try {
-      const jsonStart = responseText.indexOf('```json');
-      const jsonEnd = responseText.lastIndexOf('```');
-      let jsonString = responseText;
-
-      if (jsonStart !== -1 && jsonEnd > jsonStart) {
-        jsonString = responseText.substring(jsonStart + 7, jsonEnd).trim();
-      }
-      
-      const parsed = JSON.parse(jsonString);
+      // The prompt now strictly requests a raw JSON object.
+      // We first try to parse it directly.
+      const parsed = JSON.parse(responseText);
       return GenerateNewCharacterOutputSchema.parse(parsed);
     } catch(e) {
         console.error("Failed to parse AI response as JSON.", e, "Raw response:", responseText);
+        // As a fallback, try to extract from a code block if the model ignored the instruction.
+        try {
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                const jsonString = responseText.substring(jsonStart, jsonEnd + 1);
+                const parsedFallback = JSON.parse(jsonString);
+                return GenerateNewCharacterOutputSchema.parse(parsedFallback);
+            }
+        } catch (fallbackError) {
+             console.error("Fallback JSON parsing also failed.", fallbackError);
+        }
+        // If all parsing fails, throw the original error.
         throw new Error('AIからの応答を解析できませんでした。');
     }
   }
