@@ -61,8 +61,8 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     if (result.success) {
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };
     } else {
-      // Pass the detailed error message from createCharacter to the UI
-      throw new Error(result.message);
+      // Pass the detailed error message from createCharacter directly to the UI
+      return { success: false, message: `AIキャラクターの作成中にエラーが発生しました: ${result.message}` };
     }
   } catch (error) {
     console.error('Error generating and creating character:', error);
