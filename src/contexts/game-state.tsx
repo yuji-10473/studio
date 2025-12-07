@@ -369,7 +369,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             const newProductionPoints = (state.userProfile.productionPoints || 0) + PRODUCTION_POINTS_AWARD;
             toast({
               title: "生産ポイントUP！",
-              description: `${activeCharacter.name}との仲が深まりました。生産ポイントが${PRODUCTION_POINTS_AWARD}ポイント上昇しました。`,
+              description: `${activeCharacter.name}の元気が回復しました。生産ポイントが${PRODUCTION_POINTS_AWARD}ポイント上昇しました。`,
             });
             const userDocRef = doc(firestore, 'users', user.uid);
             await updateDoc(userDocRef, { productionPoints: newProductionPoints });
@@ -433,7 +433,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     try {
         await batch.commit();
-        toast({ title: "新しい期", description: "次の期に進み、キャラクターの好感度がリセットされました。"});
+        toast({ title: "新しい期", description: "次の期に進み、キャラクターの元気がリセットされました。"});
     } catch (error) {
         const permissionError = new FirestorePermissionError({
             path: userDocRef.path,

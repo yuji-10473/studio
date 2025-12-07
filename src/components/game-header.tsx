@@ -52,7 +52,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     setEnableTTS,
     bgmVolume,
     setBgmVolume,
-    generateAndCreateCharacter, // Use the new client-side function
+    generateAndCreateCharacter,
   } = useGameState();
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
@@ -285,7 +285,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>次の期に進みますか？</AlertDialogTitle>
                   <AlertDialogDescription>
-                    すべてのキャラクターの好感度はそのままで、会話の履歴のみがリセットされます。
+                    すべてのキャラクターの元気はリセットされますが、会話の履歴は保持されます。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

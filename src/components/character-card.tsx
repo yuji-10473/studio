@@ -78,7 +78,7 @@ export default function CharacterCard({ character, characterState, onTalk, onEdi
       </CardHeader>
       <CardContent className="flex-grow p-4 py-2">
         <div className="space-y-2">
-            <Label htmlFor={`affection-${character.id}`} className="text-sm font-medium">好感度</Label>
+            <Label htmlFor={`affection-${character.id}`} className="text-sm font-medium">元気</Label>
             <Progress id={`affection-${character.id}`} value={isCharacterLockedForUser ? 0 : characterState.affection} className="w-full" />
             <p className="text-right text-sm text-muted-foreground">{isCharacterLockedForUser ? '??' : characterState.affection} / 100</p>
         </div>
