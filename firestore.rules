@@ -51,7 +51,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     function isOwner(userId) {
@@ -176,10 +176,10 @@ service cloud.firestore {
     }
     
     match /characters/{characterId} {
+      // Allow anyone to read character data
       allow get, list: if true;
-      // Admins can create, update, and delete characters.
-      // This is handled by the server action using the Admin SDK.
-      allow create, update, delete: if false;
+      // Only admins can create, update, and delete characters
+      allow create, update, delete: if isAdmin();
     }
 
     /**
