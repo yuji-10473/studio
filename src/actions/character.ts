@@ -44,15 +44,8 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
 }
 
 export async function generateAndCreateCharacter(theme: string): Promise<{ success: boolean; message: string }> {
-  const debugLogRef = firestore.collection('debug_character_generation');
-  const logPayload: any = {
-      theme: theme,
-      timestamp: FieldValue.serverTimestamp(),
-  };
-
   try {
     const generatedData = await generateNewCharacter({ theme });
-    logPayload.response = generatedData;
     
     const newCharacter: Omit<Character, 'id'> = {
       ...generatedData,
@@ -63,22 +56,20 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     };
 
     const result = await createCharacter(newCharacter);
-    logPayload.creationResult = result;
     
     if (result.success) {
-      await debugLogRef.add(logPayload);
+      // Optionally log success, but keep it simple to avoid auth issues.
+      // For now, we rely on console logs for debugging.
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };
     } else {
       // Pass the detailed error message from createCharacter directly to the UI
-      logPayload.error = result.message;
-      await debugLogRef.add(logPayload);
       return { success: false, message: result.message };
     }
   } catch (error) {
     console.error('Error generating and creating character:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    // The Firestore write in the catch block is causing a secondary error.
-    // The primary error is already logged to the console, which is sufficient.
+    // Removed Firestore logging from the catch block to prevent secondary auth errors.
+    // The primary error is already logged to the console.
     return { success: false, message: `AIキャラクターの作成中にエラーが発生しました:\n${errorMessage}` };
   }
 }
