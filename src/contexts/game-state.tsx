@@ -62,7 +62,13 @@ const GameStateContext = createContext<GameContextType | undefined>(undefined);
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const { user, role: userRole, loading: userLoading } = useUser();
   const firestore = useFirestore();
-  const charactersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'characters') : null, [firestore]);
+  
+  // Wait until user loading is complete before attempting to fetch characters
+  const charactersCollection = useMemoFirebase(() => {
+    if (userLoading || !firestore) return null;
+    return collection(firestore, 'characters');
+  }, [firestore, userLoading]);
+
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>(charactersCollection);
   
   const userProfilePath = useMemo(() => (user ? `users/${user.uid}` : null), [user]);
@@ -552,3 +558,5 @@ export const useGameState = (): GameContextType => {
   }
   return context;
 };
+
+    
