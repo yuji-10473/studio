@@ -2,11 +2,8 @@
 'use server';
 
 import { getApp, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Character } from '@/lib/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { generateNewCharacter } from '@/ai/flows/generate-new-character';
 import { firebaseConfig } from '@/firebase/config';
 
@@ -15,14 +12,8 @@ function initializeAdminApp() {
   if (getApps().length > 0) {
     return getApp();
   }
-
-  // When running in a Google Cloud environment, the SDK can automatically
-  // detect the service account credentials.
-  // For local development, you would typically use a service account key file.
-  // Since we don't have that, we can re-use the client-side config for basic initialization,
-  // but this won't have admin privileges in a real restricted environment.
-  // However, for the purpose of making server-side calls work where client-side auth is the issue,
-  // this approach will bypass the client-side `request.auth` check in security rules.
+  // This helps ensure that the admin SDK is initialized with the correct project context,
+  // which can be crucial for server-to-server API calls like those to Google AI services.
   return initializeApp({
     projectId: firebaseConfig.projectId,
   });
@@ -34,7 +25,7 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
     const firestore = getFirestore();
     const charactersCollectionRef = firestore.collection('characters');
     
-    console.log(`[ADMIN_ACCESS_LOG] Attempting to write to Firestore collection: '${charactersCollectionRef.path}'`);
+    console.log(`[ADMIN] Attempting to write to Firestore collection: '${charactersCollectionRef.path}'`);
 
     const finalData: Omit<Character, 'id'> = {
       ...characterData,
@@ -46,9 +37,8 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
   } catch (error) {
     console.error('Error creating character with Admin SDK:', error);
     
-    // Although we are using the Admin SDK, we can still report a potential permission issue
-    // if the error code suggests it (though less likely).
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // Return a more detailed error for admins/devs to see in the UI
     return { 
         success: false, 
         message: `キャラクターの作成中にサーバーサイドでエラーが発生しました。\nError: ${errorMessage}` 
@@ -59,10 +49,7 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
 export async function generateAndCreateCharacter(theme: string): Promise<{ success: boolean; message: string }> {
   try {
     const generatedData = await generateNewCharacter({ theme });
-    if (!generatedData.name || !generatedData.introduction || !generatedData.description) {
-      throw new Error('AIがキャラクター情報を正しく生成できませんでした。');
-    }
-
+    
     const newCharacter: Omit<Character, 'id'> = {
       ...generatedData,
       imagePath: '/images/icons/icon5.png',
@@ -76,7 +63,7 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };
     } else {
       // Pass the detailed error message from createCharacter directly to the UI
-      return { success: false, message: `AIキャラクターの作成中にエラーが発生しました: ${result.message}` };
+      return { success: false, message: result.message };
     }
   } catch (error) {
     console.error('Error generating and creating character:', error);
