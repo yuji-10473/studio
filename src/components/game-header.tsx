@@ -30,7 +30,6 @@ import { testFirestoreWrite } from '@/actions/firestore-debug';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { generateAndCreateCharacter } from '@/actions/character';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
@@ -52,7 +51,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     enableTTS, 
     setEnableTTS,
     bgmVolume,
-    setBgmVolume 
+    setBgmVolume,
+    generateAndCreateCharacter, // Use the new client-side function
   } = useGameState();
   const auth = useAuth();
   const [isTestingKey, setIsTestingKey] = React.useState(false);
@@ -102,15 +102,8 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const handleGenerateCharacter = async () => {
     setIsGenerating(true);
     setErrorMessage('');
-    const result = await generateAndCreateCharacter("ゲーム開発会社の様々な労務問題を抱える従業員");
-    if (result.success) {
-      toast({
-        title: "成功",
-        description: result.message,
-      });
-    } else {
-      setErrorMessage(result.message);
-    }
+    // Call the client-side function from the context
+    await generateAndCreateCharacter("ゲーム開発会社の様々な労務問題を抱える従業員");
     setIsGenerating(false);
   }
 

@@ -107,4 +107,5 @@ export type GameContextType = GameState & {
   unlockCharacter: (characterId: CharacterId) => Promise<void>;
   toggleCharacterLock: (characterId: string, isLocked: boolean) => Promise<{ success: boolean, message: string }>;
   clearAffectionEvent: () => void;
+  generateAndCreateCharacter: (theme: string) => Promise<void>;
 };

@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { Character, CharacterId, GameContextType, GameState, Message, CharacterState, UserProfile } from '@/lib/types';
 import { getAiResponse } from '@/actions/chat';
+import { generateCharacter } from '@/actions/character';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useUser } from '@/firebase/auth/use-user';
@@ -65,9 +66,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   
   // Wait until user loading is complete before attempting to fetch characters
   const charactersCollection = useMemoFirebase(() => {
-    if (userLoading || !firestore) return null;
+    if (!firestore) return null;
     return collection(firestore, 'characters');
-  }, [firestore, userLoading]);
+  }, [firestore]);
 
   const { data: charactersFromDb, loading: charactersLoading } = useCollection<Character>(charactersCollection);
   
@@ -523,9 +524,57 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   }, [firestore, user, state.characters, state.charm, toast, setErrorMessage]);
   
+  const generateAndCreateCharacter = useCallback(async (theme: string) => {
+    if (!firestore) {
+      setErrorMessage("データベースに接続されていません。");
+      return;
+    }
+
+    const result = await generateCharacter(theme);
+    if (result.success && result.data) {
+      try {
+        const charactersCollectionRef = collection(firestore, 'characters');
+        await addDoc(charactersCollectionRef, result.data);
+        toast({
+          title: '成功',
+          description: `AIキャラクター「${result.data.name}」が作成されました！`,
+        });
+      } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: 'characters',
+            operation: 'create',
+            requestResourceData: result.data,
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
+        setErrorMessage(`AIキャラクターのデータベースへの保存中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } else {
+      setErrorMessage(result.message);
+    }
+  }, [firestore, setErrorMessage, toast]);
+
   const toggleCharacterLock = useCallback(async (characterId: string, isLocked: boolean) => {
-    return await toggleCharacterLockAction(characterId, isLocked);
-  }, []);
+     if (!firestore) {
+      setErrorMessage("データベースに接続されていません。");
+      return { success: false, message: "データベースに接続されていません。" };
+    }
+    try {
+        const characterDocRef = doc(firestore, 'characters', characterId);
+        await updateDoc(characterDocRef, {
+            isLocked: !isLocked
+        });
+        return { success: true, message: `キャラクターのロック状態を${!isLocked ? 'ロック' : 'アンロック'}しました。` };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const permissionError = new FirestorePermissionError({
+            path: `characters/${characterId}`,
+            operation: 'update',
+            requestResourceData: { isLocked: !isLocked },
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
+        return { success: false, message: `ロック状態の切り替えに失敗しました: ${errorMessage}` };
+    }
+  }, [firestore, setErrorMessage]);
   
   const contextValue: GameContextType = {
     ...state,
@@ -542,6 +591,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     unlockCharacter,
     toggleCharacterLock,
     clearAffectionEvent,
+    generateAndCreateCharacter,
   };
 
   return (
