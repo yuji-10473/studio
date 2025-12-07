@@ -161,7 +161,7 @@ service cloud.firestore {
        * @path /users/{userId}/conversationHistory/{messageId}
        */
       match /conversationHistory/{messageId} {
-          allow get, list, create, update, delete: if isOwner(userId);
+          allow read, write: if isOwner(userId);
       }
       
       /**
