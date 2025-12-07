@@ -337,7 +337,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           updateState(prev => ({ ...prev, conversationUpdateTrigger: Date.now() }));
           
           const currentCharacterState = state.characterStates[charId];
-          const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
+          const affectionChange = (result.productivityScore || 0) * AFFECTION_MULTIPLIER;
           const newAffection = Math.max(0, Math.min(100, (currentCharacterState?.affection || 50) + affectionChange));
 
           if (affectionChange > 0) {

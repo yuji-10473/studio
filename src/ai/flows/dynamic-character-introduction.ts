@@ -31,7 +31,7 @@ export type DynamicCharacterIntroductionInput = z.infer<
 
 const DynamicCharacterIntroductionOutputSchema = z.object({
   aiResponse: z.string().describe('The AI character response.'),
-  loveScore: z.number().describe('The love score of the AI response based on romantic elements.'),
+  productivityScore: z.number().describe('The score of the AI response based on how much the user\'s message contributed to solving the character\'s problem or improving their productivity.'),
   prompt: z.string().describe('The full prompt sent to the AI.'),
   rawResponse: z.any().describe('The raw response from the AI model.'),
 });
@@ -60,7 +60,7 @@ const PROMPT_TEMPLATE = `あなたはこれから恋愛シミュレーション�
 # ルール
 - あなたは「{{characterName}}」です。一人称や口調もキャラクターになりきってください。
 - キャラクター設定と、上記の「会話相手の情報」に忠実に、自然な会話をしてください。
-- ユーザーとの会話内容を評価し、ユーザーへの恋愛感情や好意がどれだけ増減したかを-1.0（悪化した）から1.0（とても良くなった）の範囲でスコア(loveScore)を付けてください。
+- ユーザーとの会話が、あなたの抱える労務問題の解決や生産性向上にどれだけ貢献したかを評価し、-1.0（悪影響があった）から1.0（非常に貢献した）の範囲でスコア(productivityScore)を付けてください。
 - 以下の会話履歴の続きを自然に生成してください。
 
 {{#conversationHistory}}
@@ -79,7 +79,7 @@ const PROMPT_TEMPLATE = `あなたはこれから恋愛シミュレーション�
 \`\`\`json
 {
   "aiResponse": "ここに{{characterName}}としての返答を記述します。",
-  "loveScore": 0.0
+  "productivityScore": 0.0
 }
 \`\`\`
 `;
@@ -116,7 +116,7 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
 
     const responseText = response.text.trim();
     let aiResponse = '';
-    let loveScore = 0;
+    let productivityScore = 0;
 
     try {
       // Find the start and end of the JSON block
@@ -130,19 +130,19 @@ const dynamicCharacterIntroductionFlow = ai.defineFlow(
       
       const parsed = JSON.parse(jsonString);
       aiResponse = parsed.aiResponse;
-      loveScore = parsed.loveScore;
+      productivityScore = parsed.productivityScore;
     } catch(e) {
         console.error("Failed to parse AI response as JSON.", e, "Raw response:", responseText);
         // If parsing fails, use the raw text as a fallback and score as neutral.
         // This makes the UI more robust against occasional model failures.
         aiResponse = responseText;
-        loveScore = 0;
+        productivityScore = 0;
     }
 
 
     return {
       aiResponse,
-      loveScore,
+      productivityScore,
       prompt: prompt,
       rawResponse: response,
     };

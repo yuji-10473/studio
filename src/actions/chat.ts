@@ -47,7 +47,7 @@ export async function getAiResponse(
   userMessage?: string,
   conversationHistory?: Message[],
   userProfile?: UserProfile,
-): Promise<{ success: boolean; message: string; loveScore?: number }> {
+): Promise<{ success: boolean; message: string; productivityScore?: number }> {
   const { firestore } = initializeFirebase();
   const conversationsLogCollection = collection(firestore, 'conversations_errors');
   
@@ -114,12 +114,12 @@ export async function getAiResponse(
     };
     logData.response = {
         aiResponse: response.aiResponse,
-        loveScore: response.loveScore,
+        productivityScore: response.productivityScore,
         rawResponse: JSON.parse(JSON.stringify(response.rawResponse || {})),
     };
     
     const aiMessage = response.aiResponse;
-    const loveScore = response.loveScore;
+    const productivityScore = response.productivityScore;
 
     if (!aiMessage && aiMessage !== "") { 
         throw new Error('AIから空の応答が返されました。');
@@ -127,8 +127,8 @@ export async function getAiResponse(
     
     // Log success to Firestore
     await addDoc(conversationsLogCollection, logData);
-    log('INFO', 'getAiResponse action successful.', { response: { success: true, message: aiMessage, loveScore }});
-    return { success: true, message: aiMessage, loveScore };
+    log('INFO', 'getAiResponse action successful.', { response: { success: true, message: aiMessage, productivityScore }});
+    return { success: true, message: aiMessage, productivityScore };
 
   } catch (error) {
     console.error('Error getting AI response:', error);
