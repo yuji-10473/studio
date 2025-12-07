@@ -2,7 +2,7 @@
 'use server';
 
 import { getApp, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
 import type { Character } from '@/lib/types';
 import { generateNewCharacter } from '@/ai/flows/generate-new-character';
 import { firebaseConfig } from '@/firebase/config';
@@ -44,8 +44,15 @@ export async function createCharacter(characterData: Omit<Character, 'id'>): Pro
 }
 
 export async function generateAndCreateCharacter(theme: string): Promise<{ success: boolean; message: string }> {
+  const debugLogRef = firestore.collection('debug_character_generation');
+  const logPayload: any = {
+      theme: theme,
+      timestamp: serverTimestamp(),
+  };
+
   try {
     const generatedData = await generateNewCharacter({ theme });
+    logPayload.response = generatedData;
     
     const newCharacter: Omit<Character, 'id'> = {
       ...generatedData,
@@ -55,16 +62,22 @@ export async function generateAndCreateCharacter(theme: string): Promise<{ succe
     };
 
     const result = await createCharacter(newCharacter);
+    logPayload.creationResult = result;
     
     if (result.success) {
+      await debugLogRef.add(logPayload);
       return { success: true, message: `AIキャラクター「${generatedData.name}」が作成されました！` };
     } else {
       // Pass the detailed error message from createCharacter directly to the UI
+      logPayload.error = result.message;
+      await debugLogRef.add(logPayload);
       return { success: false, message: result.message };
     }
   } catch (error) {
     console.error('Error generating and creating character:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    logPayload.error = errorMessage;
+    await debugLogRef.add(logPayload);
     return { success: false, message: `AIキャラクターの作成中にエラーが発生しました:\n${errorMessage}` };
   }
 }
