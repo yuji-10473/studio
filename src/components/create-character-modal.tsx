@@ -18,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { createCharacter } from '@/actions/character';
 import { LoaderCircle } from 'lucide-react';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -30,7 +29,7 @@ import { Separator } from './ui/separator';
 const characterSchema = z.object({
   name: z.string().min(1, { message: '名前は必須です。' }).max(20, { message: '名前は20文字以内です。'}),
   introduction: z.string().min(1, { message: '紹介文は必須です。' }).max(100, { message: '紹介文は100文字以内です。'}),
-  description: z.string().min(1, { message: 'ペルソナは必須です。' }).max(500, { message: 'ペルソナは500文字以内です。'}),
+  description: z.string().min(1, { message: 'ペルソナは必須です。' }).max(2000, { message: 'ペルソナは2000文字以内です。'}),
   imagePath: z.string({ required_error: 'アイコンを選択してください。' }),
   isLocked: z.boolean().default(false),
   unlockCost: z.coerce.number().int().min(0, { message: '0以上の数値を入力してください。' }).optional(),
@@ -45,7 +44,7 @@ type CreateCharacterModalProps = {
 
 export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacterModalProps) {
   const { toast } = useToast();
-  const { setErrorMessage } = useGameState();
+  const { createCharacter, setErrorMessage } = useGameState();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CharacterFormValues>({
@@ -82,17 +81,19 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
       unlockCost: data.isLocked ? data.unlockCost || 0 : 0,
     };
 
-    const result = await createCharacter(characterData);
-    if (result.success) {
-      toast({
-        title: '成功',
-        description: '新しいキャラクターを作成しました。',
-      });
-      handleClose();
-    } else {
-      setErrorMessage(result.message);
+    try {
+        await createCharacter(characterData);
+        toast({
+            title: '成功',
+            description: '新しいキャラクターを作成しました。',
+        });
+        handleClose();
+    } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        setErrorMessage(error.message);
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (

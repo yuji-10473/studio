@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SelectableIcons } from '@/lib/placeholder-images';
 
 const personaSchema = z.object({
-  description: z.string().min(1, 'ペルソナは必須です。').max(500, 'ペルソナは500文字以内です。'),
+  description: z.string().min(1, 'ペルソナは必須です。').max(2000, 'ペルソナは2000文字以内です。'),
   imagePath: z.string({ required_error: 'アイコンを選択してください。' }),
   unlockCost: z.coerce.number().int().min(0, '0以上の数値を入力してください。').optional(),
 });
