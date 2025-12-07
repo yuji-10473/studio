@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -13,6 +12,7 @@ import Login from '@/components/login';
 import GuideCharacter from '@/components/app-guide';
 import GuideConversationModal from '@/components/guide-conversation-modal';
 import PersonaEditorModal from '@/components/persona-editor-modal';
+import AdBanner from '@/components/ad-banner';
 
 function MotivateTalesApp() {
   const { 
@@ -52,6 +52,7 @@ function MotivateTalesApp() {
       <GameHeader onCreateCharacter={() => setCreateModalOpen(true)} />
       <main className="container mx-auto p-4 md:p-8">
         <GuideCharacter onTalk={() => setGuideModalOpen(true)} />
+        <AdBanner />
         <CharacterGrid />
       </main>
       {activeConversation && activeCharacter && activeCharacterState && (
