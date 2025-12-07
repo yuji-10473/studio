@@ -89,6 +89,7 @@ export type GameState = {
   enableTTS: boolean; // Text-to-speech setting
   bgmVolume: number;
   affectionEvent: AffectionChangeEvent | null;
+  conversationUpdateTrigger: number;
 };
 
 export type GameContextType = GameState & {

@@ -14,73 +14,47 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, LoaderCircle, Heart, MessageSquarePlus } from 'lucide-react';
+import { Send, Bot, User, LoaderCircle, Heart } from 'lucide-react';
 import PersonaEditor from './persona-editor';
 import { useGameState } from '@/contexts/game-state';
 import type { Character, CharacterState, CharacterId, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { query, where, orderBy, limit, collection } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { query, where, orderBy, limit, collection, getDocs, Timestamp } from 'firebase/firestore';
 
 
-function ConversationHistory({ characterId, character }: { characterId: CharacterId; character: Character; }) {
+function ConversationHistory({ 
+  characterId, 
+  character,
+  messages,
+  isLoading
+}: { 
+  characterId: CharacterId; 
+  character: Character;
+  messages: Message[];
+  isLoading: boolean;
+}) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const scrollHeightBeforeLoad = useRef<number>(0);
-  const { setErrorMessage } = useGameState();
-  const { user } = useUser();
-  const firestore = useFirestore();
-
-  const conversationCollectionRef = useMemoFirebase(() => 
-    (user && firestore) ? collection(firestore, 'users', user.uid, 'conversationHistory') : null,
-    [user, firestore]
-  );
   
-  const conversationQuery = useMemoFirebase(() => 
-    conversationCollectionRef ? query(
-      conversationCollectionRef,
-      where('characterId', '==', characterId),
-      orderBy('timestamp', 'desc'),
-      limit(10)
-    ) : null,
-    [conversationCollectionRef, characterId]
-  );
-  
-  const { 
-    data: messages, 
-    isLoading: initialLoading, 
-    error,
-    // Note: useCollection doesn't natively support pagination, so loadMore/hasMore are stubs.
-    // A more advanced hook would be needed for infinite scroll.
-  } = useCollection<Message>(conversationQuery);
-
   useEffect(() => {
-    if (error) {
-      setErrorMessage(error.message);
-    }
-  }, [error, setErrorMessage]);
-
-  useEffect(() => {
-    // Basic scroll to bottom for new messages
     const viewport = viewportRef.current;
     if (viewport) {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+        // A short delay ensures the DOM has updated before scrolling
+        setTimeout(() => {
+             viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+        }, 100);
     }
   }, [messages]);
   
 
-  if (initialLoading && !messages) {
+  if (isLoading && messages.length === 0) {
     return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-8 h-8 animate-spin" /></div>
   }
-
-  // Messages from useCollection are desc, reverse for display
-  const displayedMessages = messages ? [...messages].reverse() : [];
 
   return (
     <ScrollArea className="flex-grow" viewportRef={viewportRef}>
         <div className="p-4 space-y-4">
-        {/* Placeholder for future "Load More" functionality */}
-        {displayedMessages.map((msg, index) => (
+        {messages.map((msg, index) => (
           <div
             key={msg.id || index}
             className={cn(
@@ -121,12 +95,61 @@ export default function ConversationModal({
   character,
   characterState,
   characterId,
-}: ConversationModalProps) {
-  const { sendMessage, isAiResponding, userRole, isSpeaking, affectionEvent, clearAffectionEvent } = useGameState();
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  character: Character;
+  characterState: CharacterState;
+  characterId: CharacterId;
+}) {
+  const { sendMessage, isAiResponding, userRole, isSpeaking, affectionEvent, clearAffectionEvent, setErrorMessage, conversationUpdateTrigger } = useGameState();
   const [message, setMessage] = useState('');
+  const [history, setHistory] = useState<Message[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
+  const { user } = useUser();
+  const firestore = useFirestore();
   
   const isResponding = isAiResponding || isSpeaking;
+
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!isOpen || !user || !firestore) return;
+
+      setIsLoadingHistory(true);
+      setErrorMessage('');
+      try {
+        const conversationCollectionRef = collection(firestore, 'users', user.uid, 'conversationHistory');
+        const q = query(
+          conversationCollectionRef,
+          where('characterId', '==', characterId),
+          orderBy('timestamp', 'asc'),
+          limit(20) // Fetch last 20 messages
+        );
+
+        const querySnapshot = await getDocs(q);
+        const fetchedMessages = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          const timestamp = data.timestamp as Timestamp | null;
+          return {
+            id: doc.id,
+            ...data,
+            timestamp: timestamp ? timestamp.toDate() : new Date(),
+          } as Message;
+        });
+
+        setHistory(fetchedMessages);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setErrorMessage(`会話履歴の読み込みに失敗しました: ${errorMessage}`);
+        console.error("Error fetching conversation history:", error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    }
+
+    fetchHistory();
+  }, [isOpen, user, firestore, characterId, setErrorMessage, conversationUpdateTrigger]);
 
   useEffect(() => {
     if (affectionEvent && affectionEvent.characterId === characterId) {
@@ -163,7 +186,12 @@ export default function ConversationModal({
           <DialogTitle className="font-headline text-2xl">{character.name}と会話中</DialogTitle>
         </DialogHeader>
         
-        <ConversationHistory characterId={characterId} character={character} />
+        <ConversationHistory 
+          characterId={characterId} 
+          character={character} 
+          messages={history}
+          isLoading={isLoadingHistory}
+        />
         
         {isAiResponding && (
              <div className="p-4 flex items-center gap-2 border-t">

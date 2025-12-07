@@ -53,6 +53,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
     enableTTS: false, // Default TTS to off
     bgmVolume: 0.25, // Default BGM Volume
     affectionEvent: null,
+    conversationUpdateTrigger: 0,
   };
 };
 
@@ -297,6 +298,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             characterId: charId 
         };
         await addDoc(conversationHistoryRef, userMessage);
+        
+        // Trigger a re-fetch in the modal
+        updateState(prev => ({ ...prev, conversationUpdateTrigger: Date.now() }));
 
         const historyQuery = query(
             conversationHistoryRef,
@@ -328,6 +332,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
               characterId: charId
           };
           await addDoc(conversationHistoryRef, aiMessage);
+          
+          // Trigger another re-fetch to show AI response
+          updateState(prev => ({ ...prev, conversationUpdateTrigger: Date.now() }));
           
           const currentCharacterState = state.characterStates[charId];
           const affectionChange = (result.loveScore || 0) * AFFECTION_MULTIPLIER;
