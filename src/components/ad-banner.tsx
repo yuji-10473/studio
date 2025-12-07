@@ -1,38 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-
 export default function AdBanner() {
-  useEffect(() => {
-    const pushAd = () => {
-      try {
-        // @ts-ignore
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (err) {
-        console.error('AdSense error:', err);
-      }
-    };
-
-    const timer = setTimeout(pushAd, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <div className="my-4 w-full py-1 bg-card/60 rounded-lg border border-border flex justify-center items-center">
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block', width: '100%', textAlign: 'center' }}
-        data-ad-client="ca-pub-7148894079314433"
-        data-ad-slot="YOUR_AD_SLOT_ID" // TODO: Replace with your actual ad slot ID
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      >
-         {/* Fallback content in case ad doesn't load */}
-        <div className="text-center text-muted-foreground">
-          <p className="text-xs">広告</p>
-        </div>
-      </ins>
+    <div className="my-4 w-full h-[45px] bg-card/60 rounded-lg border border-border flex justify-center items-center">
+      {/* Fallback content in case ad doesn't load */}
+      <div className="text-center text-muted-foreground">
+        <p className="text-xs">広告</p>
+      </div>
     </div>
   );
 }
