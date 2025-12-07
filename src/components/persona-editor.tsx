@@ -140,7 +140,7 @@ export default function PersonaEditor({ character, characterId, onSave }: Person
                 name="unlockCost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>解放コスト（魅力ポイント）</FormLabel>
+                    <FormLabel>解放コスト（生産ポイント）</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 

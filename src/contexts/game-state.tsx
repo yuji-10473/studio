@@ -16,8 +16,8 @@ import { useMemoFirebase } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-const CHARM_THRESHOLD = 80;
-const CHARM_AWARD = 10;
+const PRODUCTION_POINTS_THRESHOLD = 80;
+const PRODUCTION_POINTS_AWARD = 10;
 const AFFECTION_MULTIPLIER = 10; // Score (-1.0 to 1.0) will be multiplied by this
 
 const createInitialState = (characters: Character[] | null, userStates: CharacterState[] | null): GameState => {
@@ -32,7 +32,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
   if (characters && characterStates) {
     for (const char of characters) {
         if (char.id && !characterStates[char.id]) {
-            characterStates[char.id] = { affection: 50, charmAwarded: false };
+            characterStates[char.id] = { affection: 50, productionPointsAwarded: false };
         }
     }
   }
@@ -41,7 +41,7 @@ const createInitialState = (characters: Character[] | null, userStates: Characte
   return {
     characters,
     characterStates,
-    charm: 0,
+    productionPoints: 0,
     gameDate: 1,
     activeConversation: null,
     editingPersonaCharacterId: null,
@@ -67,7 +67,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   
   const charactersCollection = useMemoFirebase(() => {
     if (!firestore) return null;
-    // No longer wait for userLoading, allow anonymous reads.
     return collection(firestore, 'characters');
   }, [firestore]);
 
@@ -98,7 +97,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
                     email: user.email || '',
                     displayName: user.displayName || user.email?.split('@')[0] || 'New User',
                     bio: '',
-                    charm: 0,
+                    productionPoints: 0,
                     gameDate: 1,
                     enableTTS: false,
                     bgmVolume: 0.25,
@@ -132,7 +131,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         const characterStates = characters.reduce((acc, char) => {
             if (char.id) {
                 const existingState = userStates.find(s => s.id === char.id);
-                acc[char.id] = existingState || { id: char.id, affection: 50, charmAwarded: false };
+                acc[char.id] = existingState || { id: char.id, affection: 50, productionPointsAwarded: false };
             }
             return acc;
         }, {} as Record<CharacterId, CharacterState>);
@@ -142,7 +141,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             characters.forEach(char => {
                 if (char.id && !userStates.some(s => s.id === char.id)) {
                     const newStateRef = doc(firestore, `users/${user.uid}/characterStates`, char.id);
-                    const newStateData = { affection: 50, charmAwarded: false };
+                    const newStateData = { affection: 50, productionPointsAwarded: false };
                     batch.set(newStateRef, newStateData);
                 }
             });
@@ -168,7 +167,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             characters,
             characterStates,
             userProfile,
-            charm: userProfile?.charm ?? 0,
+            productionPoints: userProfile?.productionPoints ?? 0,
             gameDate: userProfile?.gameDate ?? 1,
             enableTTS: userProfile?.enableTTS ?? false,
             bgmVolume: newBgmVolume,
@@ -364,22 +363,22 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
             }));
           }
 
-          let shouldAwardCharm = newAffection >= CHARM_THRESHOLD && !(currentCharacterState.charmAwarded ?? false);
+          let shouldAwardPoints = newAffection >= PRODUCTION_POINTS_THRESHOLD && !(currentCharacterState.productionPointsAwarded ?? false);
           
-          if (shouldAwardCharm) {
-            const newCharm = (state.userProfile.charm || 0) + CHARM_AWARD;
+          if (shouldAwardPoints) {
+            const newProductionPoints = (state.userProfile.productionPoints || 0) + PRODUCTION_POINTS_AWARD;
             toast({
-              title: "魅力アップ！",
-              description: `${activeCharacter.name}との仲が深まりました。魅力が${CHARM_AWARD}ポイント上昇しました。`,
+              title: "生産ポイントUP！",
+              description: `${activeCharacter.name}との仲が深まりました。生産ポイントが${PRODUCTION_POINTS_AWARD}ポイント上昇しました。`,
             });
             const userDocRef = doc(firestore, 'users', user.uid);
-            await updateDoc(userDocRef, { charm: newCharm });
+            await updateDoc(userDocRef, { productionPoints: newProductionPoints });
           }
 
           const characterStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
           const newCharacterState = { 
               affection: newAffection,
-              charmAwarded: shouldAwardCharm ? true : (currentCharacterState.charmAwarded ?? false)
+              productionPointsAwarded: shouldAwardPoints ? true : (currentCharacterState.productionPointsAwarded ?? false)
           };
           await setDoc(characterStateRef, newCharacterState, { merge: true });
 
@@ -429,12 +428,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     Object.keys(state.characterStates).forEach(charId => {
         const charStateRef = doc(firestore, 'users', user.uid, 'characterStates', charId);
-        batch.set(charStateRef, { affection: 50, charmAwarded: false });
+        batch.set(charStateRef, { affection: 50, productionPointsAwarded: false });
     });
 
     try {
         await batch.commit();
-        toast({ title: "新しい一日", description: "次の日になり、キャラクターの好感度がリセットされました。"});
+        toast({ title: "新しい期", description: "次の期に進み、キャラクターの好感度がリセットされました。"});
     } catch (error) {
         const permissionError = new FirestorePermissionError({
             path: userDocRef.path,
@@ -499,11 +498,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (!character || !character.isLocked) return;
 
     const cost = character.unlockCost ?? 0;
-    if (state.charm < cost) {
+    if (state.productionPoints < cost) {
       toast({
         variant: "destructive",
         title: "ポイントが足りません",
-        description: `このキャラクターを解放するには${cost}の魅力ポイントが必要です。`,
+        description: `このキャラクターを解放するには${cost}の生産ポイントが必要です。`,
       });
       return;
     }
@@ -512,8 +511,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const userDocRef = doc(firestore, 'users', user.uid);
     const characterDocRef = doc(firestore, 'characters', characterId);
 
-    const newCharm = state.charm - cost;
-    batch.update(userDocRef, { charm: newCharm });
+    const newProductionPoints = state.productionPoints - cost;
+    batch.update(userDocRef, { productionPoints: newProductionPoints });
     batch.update(characterDocRef, { unlockedBy: arrayUnion(user.uid) });
 
     try {
@@ -532,7 +531,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       setErrorMessage(`キャラクターの解放に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-  }, [firestore, user, state.characters, state.charm, toast, setErrorMessage]);
+  }, [firestore, user, state.characters, state.productionPoints, toast, setErrorMessage]);
   
   const generateAndCreateCharacter = useCallback(async (theme: string) => {
     if (!firestore) {

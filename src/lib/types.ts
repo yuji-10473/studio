@@ -51,7 +51,7 @@ export type Message = {
 export type CharacterState = {
   id?: CharacterId; // This will be the characterId
   affection: number;
-  charmAwarded: boolean;
+  productionPointsAwarded: boolean;
 };
 
 export type UserRole = 'admin' | 'user';
@@ -61,7 +61,7 @@ export type UserProfile = {
   email: string;
   displayName: string;
   bio?: string; // Add bio field
-  charm: number;
+  productionPoints: number;
   gameDate: number;
   enableTTS?: boolean; // Text-to-speech setting
   bgmVolume?: number; // BGM volume setting (0 to 1)
@@ -77,7 +77,7 @@ export type AffectionChangeEvent = {
 export type GameState = {
   characters: Character[] | null;
   characterStates: Record<CharacterId, CharacterState> | null;
-  charm: number;
+  productionPoints: number;
   gameDate: number;
   activeConversation: CharacterId | null;
   editingPersonaCharacterId: CharacterId | null;

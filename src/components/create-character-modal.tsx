@@ -196,7 +196,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">このキャラクターをロックする</FormLabel>
                     <FormDescription>
-                      ONにすると、ユーザーは魅力ポイントを消費してキャラクターを解放する必要があります。
+                      ONにすると、ユーザーは生産ポイントを消費してキャラクターを解放する必要があります。
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -215,7 +215,7 @@ export default function CreateCharacterModal({ isOpen, onClose }: CreateCharacte
                 name="unlockCost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>解放コスト（魅力ポイント）</FormLabel>
+                    <FormLabel>解放コスト（生産ポイント）</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="例: 20" {...field} />
                     </FormControl>

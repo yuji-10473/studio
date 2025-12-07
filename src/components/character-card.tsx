@@ -20,7 +20,7 @@ type CharacterCardProps = {
 };
 
 export default function CharacterCard({ character, characterState, onTalk, onEditPersona }: CharacterCardProps) {
-  const { user, charm, unlockCharacter, toggleCharacterLock, userRole, setErrorMessage } = useGameState();
+  const { user, productionPoints, unlockCharacter, toggleCharacterLock, userRole, setErrorMessage } = useGameState();
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isTogglingLock, setIsTogglingLock] = useState(false);
   const { toast } = useToast();
@@ -85,7 +85,7 @@ export default function CharacterCard({ character, characterState, onTalk, onEdi
       </CardContent>
       <CardFooter className="p-4 pt-0 flex flex-col items-stretch gap-2">
         {isCharacterLockedForUser ? (
-            <Button onClick={handleUnlock} className="w-full" disabled={isUnlocking || charm < (character.unlockCost ?? 0)}>
+            <Button onClick={handleUnlock} className="w-full" disabled={isUnlocking || productionPoints < (character.unlockCost ?? 0)}>
                 {isUnlocking ? (
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

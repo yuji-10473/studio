@@ -44,7 +44,7 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const { 
     user,
     userRole, 
-    charm, 
+    productionPoints, 
     gameDate, 
     stayAtInn, 
     setErrorMessage, 
@@ -251,13 +251,13 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
           </h1>
         </div>
         <div className="flex items-center gap-4 md:gap-6">
-          <div className="flex items-center gap-2" title="魅力ポイント">
-            <Heart className="text-primary" />
-            <span className="font-bold text-lg">{charm}</span>
+          <div className="flex items-center gap-2" title="生産ポイント">
+            <Sparkles className="text-primary" />
+            <span className="font-bold text-lg">{productionPoints}</span>
           </div>
-          <div className="flex items-center gap-2" title="現在の日付">
+          <div className="flex items-center gap-2" title="現在の期">
             <CalendarDays className="text-primary" />
-            <span className="font-bold text-lg">{gameDate}日目</span>
+            <span className="font-bold text-lg">{gameDate}期目</span>
           </div>
           <div className="flex items-center gap-2">
             
@@ -278,12 +278,12 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Bed className="mr-2 h-4 w-4" />
-                  次の日へ
+                  次の期へ
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>次の日に進みますか？</AlertDialogTitle>
+                  <AlertDialogTitle>次の期に進みますか？</AlertDialogTitle>
                   <AlertDialogDescription>
                     すべてのキャラクターの好感度はそのままで、会話の履歴のみがリセットされます。
                   </AlertDialogDescription>
