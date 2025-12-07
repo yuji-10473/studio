@@ -1,4 +1,3 @@
-'use client';
 import { getAuth, type User } from 'firebase/auth';
 
 type SecurityRuleContext = {
@@ -114,9 +113,13 @@ ${JSON.stringify(requestObject, null, 2)}`;
 export class FirestorePermissionError extends Error {
   public readonly request: SecurityRuleRequest;
 
-  constructor(context: SecurityRuleContext) {
+  constructor(context: SecurityRuleContext, cause?: any) {
     const requestObject = buildRequestObject(context);
-    super(buildErrorMessage(requestObject));
+    const message = buildErrorMessage(requestObject);
+    
+    // Pass the original error cause to the Error constructor if available
+    super(message, { cause });
+
     this.name = 'FirebaseError';
     this.request = requestObject;
   }
