@@ -40,6 +40,16 @@ type GameHeaderProps = {
   onCreateCharacter: () => void;
 };
 
+const characterThemes = [
+  "ゲーム開発会社で働く、燃え尽き気味のプログラマー",
+  "ゲーム開発会社で働く、締め切りに追われるデザイナー",
+  "ゲーム開発会社で働く、板挟みに悩むプロモーター",
+  "ゲーム開発会社で働く、QAチームのリーダー",
+  "ゲーム開発会社で働く、新人プランナー",
+  "ゲーム開発会社で働く、経験豊富なサウンドクリエイター",
+  "ゲーム開発会社で働く、ユーザーサポート担当者"
+];
+
 export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const { 
     user,
@@ -102,8 +112,10 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
   const handleGenerateCharacter = async () => {
     setIsGenerating(true);
     setErrorMessage('');
+    // Select a random theme from the list
+    const randomTheme = characterThemes[Math.floor(Math.random() * characterThemes.length)];
     // Call the client-side function from the context
-    await generateAndCreateCharacter("ゲーム開発会社の様々な労務問題を抱える従業員");
+    await generateAndCreateCharacter(randomTheme);
     setIsGenerating(false);
   }
 
@@ -457,3 +469,5 @@ export default function GameHeader({ onCreateCharacter }: GameHeaderProps) {
     </header>
   );
 }
+
+    
